@@ -1,0 +1,114 @@
+{
+  "name": "bilibilidownloader",
+  "version": "1.0.0",
+  "description": "Bilibili video download",
+  "homepage":"https://github.com/beyond-1234/BilibiliDownloader",
+  "main": "main.js",
+  "scripts": {
+    "pack": "electron-builder build --dir",
+    "start": "electron .", 
+    "make:all": "npm run make:linux:x64 && npm run make:linux:arm && npm run make:mac:zip && npm run make:win",
+    "make:win": "electron-builder build --win",
+    "make:win:exe": "electron-builder build --win nsis",
+    "make:win:zip": "electron-builder build --win zip",
+    "make:win:portable": "electron-builder build --win portable --x64 ",
+    "make:mac:zip": "electron-builder build --mac zip",
+    "make:mac:dmg": "electron-builder build --mac dmg",
+    "make:linux:x64": "electron-builder build --linux --x64",
+    "make:linux:x64:appimage": "electron-builder build --linux appimage --x64",
+    "make:linux:x64:zip": "electron-builder build --linux zip --x64",
+    "make:linux:x64:tar": "electron-builder build --linux tar.xz --x64",
+    "make:linux:arm": "electron-builder build --linux --arm64",
+    "make:linux:arm:zip": "electron-builder build --linux zip --arm64",
+    "make:linux:arm:tar.xz": "electron-builder build --linux tar.xz --arm64",
+    "dist": "electron-builder"
+  },
+  "repository": "https://github.com/beyond-1234/BilibiliDownloader",
+  "keywords": [
+    "Electron",
+    "bilibili",
+    "download"
+  ],
+  "author": {
+    "name":"beyond-1234",
+    "email": "beyond_1234@live.com",
+    "url": "https://github.com/beyond-1234/"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^8.0.0",
+    "electron-builder": "^22.3.2"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "bulma": "^0.8.0",
+    "ffmpeg-static-electron": "^2.0.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "font-awesome": "^4.7.0",
+    "jquery": "^3.4.1"
+  },
+  "build": {
+    "appId": "com.github.beyond-1234",
+    "asar": false,
+    "protocols": [
+      {
+        "name": "BilibiliDownloader",
+        "schemes": [
+          "bilibiliDownloader"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "util/icon-51x512.png",
+      "target": [
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "util/icon-51x512.png"
+    },
+    "linux": {
+      "protocols": {
+        "name": "BilibiliDownloader",
+        "schemes": [
+          "bilibiliDownloader"
+        ]
+      },
+      "target": [
+        "AppImage",
+        "zip",
+        "tar.xz"
+      ],
+      "desktop": {
+        "Icon": "util/icon-51x512.png"
+      },
+      "category": "Network"
+    }
+  },
+  "files": [
+    "**/*",
+    "!config/",
+    "!spec/",
+    "!project_page/",
+    "!vendor/",
+    "!docs/",
+    "!dist/",
+    "!assets/",
+    "node_modules/ffmpeg-static-electron/bin/${os}/${arch}/ffmpeg",
+    "node_modules/ffmpeg-static-electron/index.js",
+    "node_modules/ffmpeg-static-electron/package.json"
+  ],
+  "copyright": "2017 Pietro Passarelli",
+  "mac": {
+    "category": "public.app-category.productivity",
+    "files": [
+      "!node_modules/ffmpeg-static-electron/bin/win${/*}",
+      "!node_modules/ffmpeg-static-electron/bin/linux${/*}"
+    ]
+  }
+}

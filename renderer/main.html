@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <link rel="stylesheet" href="./main.css">
+  <link rel="stylesheet" href="../node_modules/bulma/css/bulma.min.css">
+  <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css">
+  <title>Bilibili</title>
+</head>
+
+<body>
+
+  <div>
+    <aside class="tabs is-centered">
+      <ul>
+        <li id="add-btn" class="is-active"><a>Home</a></li>
+        <li id="downloading-btn"><a>Downloading</a></li>
+        <li id="finished-btn"><a>Finished</a></li>
+        <li id="failed-btn"><a>Failed</a></li>
+      </ul>
+    </aside>
+
+    <div>
+
+      <!-- popup video info -->
+      <div class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Video Info</p>
+            <button class="modal-close-btn" class="delete" aria-label="close"></button>
+          </header>
+          <section class="modal-card-body">
+
+            <div class="field">
+              <p class="subtitle is-5">avNumber:</p>
+              <p id="avNumber-p" class="title is-6"></p>
+            </div>
+
+            <div class="field">
+              <p class="subtitle is-5">Title:</p>
+              <p id="title-p" class="title is-6"></p>
+            </div>
+
+            <div class="field">
+              <p class="subtitle is-5">UP:</p>
+              <p id="up-p" class="title is-6"></p>
+            </div>
+
+            <div class="field">
+              <p class="subtitle is-5">Description:</p>
+              <p id="desc-p" class="title is-6"></p>
+            </div>
+
+            <div class="field">
+              <p class="subtitle is-5">Accept:</p>
+            </div>
+            <div id="radio-parent" class="control" style="margin-bottom: 10px !important;">
+              <label id="label112" class="hide">
+                <input id="radio112" type="radio" name="accept" value="112" class="hide">
+                1080P+
+              </label>
+              <label id="label116" class="hide">
+                <input id="radio116" type="radio" name="accept" value="116" class="hide">
+                1080P60
+              </label>
+              <label id="label74" class="hide">
+                <input id="radio74" type="radio" name="accept" value="74" class="hide">
+                720P60
+              </label>
+              <label id="label80" class="hide">
+                <input id="radio80" type="radio" name="accept" value="80" class="hide">
+                1080P
+              </label>
+              <label id="label64" class="hide">
+                <input id="radio64" type="radio" name="accept" value="64" class="hide">
+                720P
+              </label>
+              <label id="label32" class="hide">
+                <input id="radio32" type="radio" name="accept" value="32" class="hide">
+                480P
+              </label>
+              <label id="label16" class="hide">
+                <input id="radio16" type="radio" name="accept" value="16" class="hide">
+                320P
+              </label>
+            </div>
+
+            <div class="field">
+              <p class="subtitle is-5" style="margin-bottom: 10px !important;">Part:</p>
+              <div id="part-div">
+
+              </div>
+            </div>
+            <input id="input-isOldVideo" type="hidden" name="input-isOldVideo" value="0">
+
+          </section>
+          <footer class="modal-card-foot">
+            <button id="get-video-btn" class="button is-success">Go</button>
+            <button class="modal-close-btn button">Cancel</button>
+          </footer>
+        </div>
+      </div>
+
+      <!-- home panel -->
+      <div id="add">
+        <div class="columns">
+          <div class="column is-three-fifths is-offset-one-fifth">
+            <!-- set root path input -->
+            <div class="field is-grouped">
+              <p class="control is-expanded">
+                <input id="path-input" class="input" type="text">
+              </p>
+              <p class="control">
+                <button id="path-button" type="button" class="button is-primary">
+                  Set Download Path
+                </button>
+              </p>
+            </div>
+            <!-- search input -->
+            <div class="field">
+              <div class="control is-large">
+                <input id="avNumber-input" class="input is-large" type="text" placeholder="av number"
+                  value="">
+              </div>
+            </div>
+            <!-- search button -->
+            <div class="field column is-three-fifths is-offset-two-fifths">
+              <div class="control">
+                <button id="search-btn" type="button" class="button is-primary">
+                  Search
+                </button>
+              </div>
+            </div>
+
+            <!-- histroy -->
+            <div class="tile is-ancestor">
+              <div class="tile is-parent">
+                <div class="tile is-child box">
+                  <p class="title">History</p>
+                  <ul id="history-ul">
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- download task list panel -->
+      <div id="downloading" class="hide">
+        <div class="columns">
+          <div id="downloadListContainer" class="column is-three-fifths is-offset-one-fifth">
+            <!-- list -->
+
+          </div>
+        </div>
+      </div>
+
+      <!-- finished panel -->
+      <div id="finished" class="hide">
+        <div class="columns">
+          <div id="finishedListContainer" class="column is-three-fifths is-offset-one-fifth">
+            <!-- list -->
+
+          </div>
+        </div>
+      </div>
+
+      <!-- failed panel -->
+      <div id="failed" class="hide">
+        <div class="columns">
+          <div id="failedListContainer" class="column is-three-fifths is-offset-one-fifth">
+            <!-- list -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- <button id="test-btn" type="button" class="button is-primary">
+    test
+  </button> -->
+
+  <script src="./app.js"></script>
+</body>
+
+</html>

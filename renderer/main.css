@@ -1,0 +1,14 @@
+.hide{
+    /* use !important to forcely overwrite this property */
+    display: none !important;
+}
+
+.show{
+    /* use !important to forcely overwrite this property */
+    display: inherit !important;
+}
+
+.small-bottom-margin{
+    /* use !important to forcely overwrite this property */
+    margin-bottom: 0.5em !important;
+}
