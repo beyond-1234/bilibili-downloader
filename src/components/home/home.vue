@@ -32,76 +32,18 @@
           <div class="field">
             <p class="subtitle is-5">Accept:</p>
           </div>
-          <div id="radio-parent" class="control" style="margin-bottom: 10px !important;">
-            <label id="label112" :class="{hide:!hasAccept(112)}">
+          <div id="radio-parent" class="control" style="margin-bottom: 10px !important;"
+              v-for="item in videoData['accept']" :key="item.acceptCode">
+
+            <label :id="`label${item.acceptCode}`">
               <input
-                id="radio112"
+                :id="`radio112${item.acceptCode}`"
                 type="radio"
                 name="accept"
-                value="112"
-                :class="{hide:!hasAccept(112)}"
+                :value="item.acceptCode"
+                v-model="item.select"
               />
-              1080P+
-            </label>
-            <label id="label116" :class="{hide:!hasAccept(116)}">
-              <input
-                id="radio116"
-                type="radio"
-                name="accept"
-                value="116"
-                :class="{hide:!hasAccept(116)}"
-              />
-              1080P60
-            </label>
-            <label id="label74" :class="{hide:!hasAccept(74)}">
-              <input
-                id="radio74"
-                type="radio"
-                name="accept"
-                value="74"
-                :class="{hide:!hasAccept(74)}"
-              />
-              720P60
-            </label>
-            <label id="label80" :class="{hide:!hasAccept(80)}">
-              <input
-                id="radio80"
-                type="radio"
-                name="accept"
-                value="80"
-                :class="{hide:!hasAccept(80)}"
-              />
-              1080P
-            </label>
-            <label id="label64" :class="{hide:!hasAccept(64)}">
-              <input
-                id="radio64"
-                type="radio"
-                name="accept"
-                value="64"
-                :class="{hide:!hasAccept(64)}"
-              />
-              720P
-            </label>
-            <label id="label32" :class="{hide:!hasAccept(32)}">
-              <input
-                id="radio32"
-                type="radio"
-                name="accept"
-                value="32"
-                :class="{hide:!hasAccept(32)}"
-              />
-              480P
-            </label>
-            <label id="label16" :class="{hide:!hasAccept(16)}">
-              <input
-                id="radio16"
-                type="radio"
-                name="accept"
-                value="16"
-                :class="{hide:!hasAccept(16)}"
-              />
-              320P
+              {{item.acceptName}}
             </label>
           </div>
 
@@ -109,7 +51,7 @@
             <p class="subtitle is-5" style="margin-bottom: 10px !important;">Part:</p>
             <div id="part-div" v-for="p in videoData.pages" :key="p.page">
               <label :id="`label${p.page}`" class="checkbox">
-                <input type="checkbox" :id="`check${p.page}`" v-modal="p.page" />
+                <input type="checkbox" :id="`check${p.page}`" v-model="p.select"/>
                 {{p.partName}}
               </label>
               <p></p>
@@ -118,7 +60,8 @@
           <!-- <input id="input-isOldVideo" type="hidden" name="input-isOldVideo" value="0" /> -->
         </section>
         <footer class="modal-card-foot">
-          <button id="get-video-btn" class="button is-success" @click="startDownload">Go</button>
+          <button id="get-video-btn" class="button is-success" @click="startDownload"
+                  :disabled="downloadButtonDisabled">Go</button>
           <button class="modal-close-btn button" @click="cancel">Cancel</button>
         </footer>
       </div>
@@ -171,8 +114,10 @@
             <div class="tile is-parent">
               <div class="tile is-child box">
                 <p class="title">History</p>
-                <ul id="history-ul" v-for="item in searchHistory" :key="item">
-                  {{ item }}
+                <ul  id="history-ul">
+                  <li v-for="item of searchHistory" :key="item">
+                    {{ item }}
+                  </li>
                 </ul>
               </div>
             </div>
@@ -191,6 +136,7 @@ export default {
   name: "home",
   data() {
     return {
+      downloadButtonDisabled: false,
       modal:"modal",
       searchInput: "",
       showDetail: false,
@@ -200,7 +146,7 @@ export default {
         number: "",
         title: "",
         desc: "",
-        accept: {},
+        accept: [],
         isOldVideo: false,
         upName: "",
         pageCount: 0,
@@ -224,9 +170,6 @@ export default {
       // searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
       this.searchHistory = localStorage.getItem("searchHistory").split(",");
     }
-  },
-  beforeDestroy(){
-    // localStorage.setItem("searchHistory", this.searchHistory)
   },
   methods: {
     setRootPath() {
@@ -253,6 +196,7 @@ export default {
       }
 
       this.videoData = await videoUtil.getInfo(searchNumber[0]);
+      
       console.log(this.videoData);
 
       if (this.videoData["hasError"]) {
@@ -264,19 +208,42 @@ export default {
       this.updateHistory()
     },
     updateHistory() {
-      var searchNumber = this.searchInput.trim().match(/[abB][vV].+/);
-      console.log("update history")
-      if (searchNumber == null || searchNumber.length == 0) {
-        return;
-      }
 
-      this.searchHistory.push(this.searchInput)
+      // this.searchHistory.push(this.searchInput)
+      this.searchHistory.splice(0, 0, this.searchInput)
+      if(this.searchHistory.length == 101){
+        this.searchHistory.pop();
+      }
       localStorage.setItem("searchHistory", this.searchHistory)
     },
-    hasAccept(acceptCode) {
-      return this.videoData["accept"][acceptCode] != null ? true : false;
+    startDownload() {
+      this.downloadButtonDisabled = true
+
+      var acceptCode = -1
+      var urls = []
+
+      this.videoData["accept"].forEach(item => {
+        if(item["select"]) acceptCode = item["acceptCode"]
+      })
+
+      if(acceptCode == -1) return
+
+      this.videoData["pages"].forEach(item => {
+        if(item["select"]) {
+          videoUtil.getUrl(this.videoData.number, acceptCode, item["page"], this.videoData["isOldVideo"])
+            .then(url => {
+              urls.push(url)
+            })
+            .catch(error => {
+              console.log(error)
+            })
+        }
+      })
+
+      console.log(urls)
+
+      this.downloadButtonDisabled = false
     },
-    startDownload() {},
     cancel() {
       this.showDetail = false;
     }

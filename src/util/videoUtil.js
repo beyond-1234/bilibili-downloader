@@ -27,7 +27,7 @@ exports.getInfo = async (avNumber) => {
         "number":avNumber,
         "title": "",
         "desc": "",
-        "accept": {},
+        "accept": [],
         "isOldVideo": false,
         "upName": "",
         "pageCount": 0,
@@ -89,6 +89,7 @@ function getVideoInfo(script, videoData) {
         videoData["pages"].push({
             "page": key["page"],
             "partName": key["part"],
+            "select":false
         })
         videoData["pageCount"] += 1
     }
@@ -125,7 +126,12 @@ function getNewVideoAccepts(scripts, videoData) {
         const elm = play_info["data"]["dash"]["video"][index];
         var acceptCode = elm["id"]
         // console.log(acceptCode)
-        videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
+        videoData["accept"].push({
+            "acceptCode":acceptCode,
+            "acceptName":acceptDicRev[acceptCode],
+            "select":false
+        })
+        // videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
     }
     // for (var elm in play_info["data"]["dash"]["video"]) {
     //     var acceptCode = elm["id"]
@@ -149,7 +155,11 @@ function getOldVideoAccepts(scripts, videoData) {
     //add accept info, let user choose one
     for (let index = 0; index < play_info["data"]["accept_quality"].length; index++) {
         const acceptCode = play_info["data"]["accept_quality"][index];
-        videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
+        videoData["accept"].push({
+            "acceptCode":acceptCode,
+            "acceptName":acceptDicRev[acceptCode],
+            "select":false
+        })
     }
 }
 
@@ -185,7 +195,6 @@ exports.getUrl = async (avNumber, acceptCode, part, isOld) => {
             resolve(url)
 
         }).catch((error) => {
-            console.log(error)
             reject(error)
         })
     })
