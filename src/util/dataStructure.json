@@ -1,0 +1,76 @@
+{
+    "old app.js": {
+        "acceptCode": 80,
+        "avNumber": "av454545",
+        "id": 123456789,
+        "parts": [
+            "1"
+        ],
+        "urls": [
+            {
+                "audioUrl": "",
+                "audioProgress": 10,
+                "error": {},
+                "finished": false,
+                "hasError": false,
+                "part": "1",
+                "start": true,
+                "videoProgress": 10,
+                "videoUrl": "",
+                "waitng": false
+            }
+        ]
+    },
+    "old videoUtil.js": {
+        "part": "1",
+        "video": "",
+        "audio": "",
+        "hasError": false,
+        "error": {},
+        "videoProgress": 0,
+        "audioProgress": 0,
+        "start": false,
+        "finished": false,
+        "waiting": false
+    },
+    "new app.js": {
+        "id": 123456789,
+        "acceptCode": 80,
+        "avNumber": "av454545",
+        "title": "",
+        "part": "1",
+        "partName": "",
+        "audioUrl": "",
+        "audioProgress": 10,
+        "videoUrl": "",
+        "videoProgress": 10,
+        "start": true,
+        "finished": false,
+        "waitng": false,
+        "hasError": false,
+        "error": {},
+        "isOldVideo":false
+    },
+    "new videoUtil getInfo": {
+        "title": "",
+        "desc": "",
+        "accept": {},
+        "upName": "",
+        "pageCount": 0,
+        "pages": [
+            {
+                "part": 1,
+                "partName": ""
+            }
+        ],
+        "hasError": false,
+        "error": {}
+    },
+    "new videoUtil getUrl": {
+        "part": "1",
+        "videoUrl": "",
+        "audioUrl": "",
+        "hasError": false,
+        "error": {}
+    }
+}
