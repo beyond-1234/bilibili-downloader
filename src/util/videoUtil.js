@@ -1,4 +1,5 @@
-const axios = require('axios')
+import { get } from 'axios'
+import { getEmptyVideoData } from './util'
 
 // var acceptDic = {
 //     "高清 1080P+": 112,
@@ -20,26 +21,16 @@ var acceptDicRev = {
     16: "流畅 360P"
 }
 
-exports.getInfo = async (avNumber) => {
+export async function getInfo(avNumber) {
 
-
-    var videoData = {
-        "number":avNumber,
-        "title": "",
-        "desc": "",
-        "accept": [],
-        "isOldVideo": false,
-        "upName": "",
-        "pageCount": 0,
-        "pages": [],
-        "hasError": false,
-        "error": {}
-    }
+    // var videoData = clone(prevData)
+    // console.log("reset")
+    // console.log(videoData)
+    var videoData = getEmptyVideoData()
 
     var referer = "https://www.bilibili.com/video/" + avNumber
-    console.log(referer)
 
-    await axios.get(referer)
+    await get(referer)
         .then(function (response) {
 
             videoData["number"] = avNumber
@@ -89,7 +80,7 @@ function getVideoInfo(script, videoData) {
         videoData["pages"].push({
             "page": key["page"],
             "partName": key["part"],
-            "select":false
+            "select": false
         })
         videoData["pageCount"] += 1
     }
@@ -127,9 +118,9 @@ function getNewVideoAccepts(scripts, videoData) {
         var acceptCode = elm["id"]
         // console.log(acceptCode)
         videoData["accept"].push({
-            "acceptCode":acceptCode,
-            "acceptName":acceptDicRev[acceptCode],
-            "select":false
+            "acceptCode": acceptCode,
+            "acceptName": acceptDicRev[acceptCode],
+            "select": false
         })
         // videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
     }
@@ -156,15 +147,15 @@ function getOldVideoAccepts(scripts, videoData) {
     for (let index = 0; index < play_info["data"]["accept_quality"].length; index++) {
         const acceptCode = play_info["data"]["accept_quality"][index];
         videoData["accept"].push({
-            "acceptCode":acceptCode,
-            "acceptName":acceptDicRev[acceptCode],
-            "select":false
+            "acceptCode": acceptCode,
+            "acceptName": acceptDicRev[acceptCode],
+            "select": false
         })
     }
 }
 
 
-exports.getUrl = async (avNumber, acceptCode, part, isOld) => {
+export async function getUrl(avNumber, acceptCode, part, isOld) {
 
     var url = {
         "part": part,
@@ -175,7 +166,7 @@ exports.getUrl = async (avNumber, acceptCode, part, isOld) => {
     var referer = "https://www.bilibili.com/video/" + avNumber
 
     return new Promise((resolve, reject) => {
-        axios.get(referer + "?p=" + part).then((response) => {
+        get(referer + "?p=" + part).then((response) => {
             var scripts = response["data"].match(/<script>.+?<\/script>/g)
 
             var play_info_str = scripts[0].replace("<script>", "")
@@ -237,3 +228,4 @@ function getOldVideoUrl(acceptCode, videoList, url) {
     // merge url
     url["videoUrl"] = videoBaseUrl.substring(0, acceptCodeIndex + 1) + acceptCode + videoBaseUrl.substring(formateIndex)
 }
+
