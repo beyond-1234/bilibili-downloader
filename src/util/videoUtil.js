@@ -1,5 +1,9 @@
 import { get } from 'axios'
 import { getEmptyVideoData } from './util'
+import { IS_OLD_VIDEO, HAS_ERROR, ERROR, 
+    TITLE, DESC, UP_NAME, VIDEO_PAGE, 
+    SELECT, VIDEO_PAGE_NAME, PAGE_COUNT, 
+    ACCEPT, ACCEPT_CODE, ACCEPT_NAME, VIDEO_URL, AUDIO_URL } from '../constants'
 
 // var acceptDic = {
 //     "高清 1080P+": 112,
@@ -41,15 +45,15 @@ export async function getInfo(avNumber) {
 
             if (isOldVideo(scripts[0])) {
                 getOldVideoAccepts(scripts[0], videoData)
-                videoData["isOldVideo"] = true
+                videoData[IS_OLD_VIDEO] = true
             } else {
                 getNewVideoAccepts(scripts[0], videoData)
             }
 
         })
         .catch(function (error) {
-            videoData["hasError"] = true
-            videoData["error"] = error
+            videoData[HAS_ERROR] = true
+            videoData[ERROR] = error
             console.log(error);
         });
 
@@ -70,19 +74,19 @@ function getVideoInfo(script, videoData) {
     var init_stat = JSON.parse(init_stat_str)
 
     //add other info
-    videoData["title"] = init_stat["videoData"]["title"]
-    videoData["desc"] = init_stat["videoData"]["desc"]
-    videoData["upName"] = init_stat["videoData"]["owner"]["name"]
+    videoData[TITLE] = init_stat["videoData"]["title"]
+    videoData[DESC] = init_stat["videoData"]["desc"]
+    videoData[UP_NAME] = init_stat["videoData"]["owner"]["name"]
 
     //add parts info
     for (let index = 0; index < init_stat["videoData"]["pages"].length; index++) {
         const key = init_stat["videoData"]["pages"][index];
-        videoData["pages"].push({
-            "page": key["page"],
-            "partName": key["part"],
-            "select": false
+        videoData[VIDEO_PAGE].push({
+            [VIDEO_PAGE]: key["page"],
+            [VIDEO_PAGE_NAME]: key["part"],
+            [SELECT]: false
         })
-        videoData["pageCount"] += 1
+        videoData[PAGE_COUNT] += 1
     }
 }
 
@@ -111,16 +115,15 @@ function getNewVideoAccepts(scripts, videoData) {
 
     // console.log()
 
-
     //add accept info, let user choose one
     for (let index = 0; index < play_info["data"]["dash"]["video"].length; index += 2) {
         const elm = play_info["data"]["dash"]["video"][index];
         var acceptCode = elm["id"]
         // console.log(acceptCode)
-        videoData["accept"].push({
-            "acceptCode": acceptCode,
-            "acceptName": acceptDicRev[acceptCode],
-            "select": false
+        videoData[ACCEPT].push({
+            [ACCEPT_CODE]: acceptCode,
+            [ACCEPT_NAME]: acceptDicRev[acceptCode],
+            [SELECT]: false
         })
         // videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
     }
@@ -146,10 +149,10 @@ function getOldVideoAccepts(scripts, videoData) {
     //add accept info, let user choose one
     for (let index = 0; index < play_info["data"]["accept_quality"].length; index++) {
         const acceptCode = play_info["data"]["accept_quality"][index];
-        videoData["accept"].push({
-            "acceptCode": acceptCode,
-            "acceptName": acceptDicRev[acceptCode],
-            "select": false
+        videoData[ACCEPT].push({
+            [ACCEPT_CODE]: acceptCode,
+            [ACCEPT_NAME]: acceptDicRev[acceptCode],
+            [SELECT]: false
         })
     }
 }
@@ -158,9 +161,9 @@ function getOldVideoAccepts(scripts, videoData) {
 export async function getUrl(avNumber, acceptCode, part, isOld) {
 
     var url = {
-        "part": part,
-        "videoUrl": "",
-        "audioUrl": ""
+        [VIDEO_PAGE]: part,
+        [VIDEO_URL]: "",
+        [AUDIO_URL]: ""
     }
 
     var referer = "https://www.bilibili.com/video/" + avNumber
@@ -205,8 +208,8 @@ function getNewVideoUrl(acceptCode, videoList, audioList, url) {
             //add audio url, just choose the first one
             var audioUrl = audioList[0]["baseUrl"].replace("http", "https")
 
-            url["videoUrl"] = videoUrl
-            url["audioUrl"] = audioUrl
+            url[VIDEO_URL] = videoUrl
+            url[AUDIO_URL] = audioUrl
 
             // console.log(url)
             //jump out of loop
@@ -226,6 +229,6 @@ function getOldVideoUrl(acceptCode, videoList, url) {
     // find the accept code index
     var acceptCodeIndex = videoBaseUrl.substring(0, formateIndex).lastIndexOf("-")
     // merge url
-    url["videoUrl"] = videoBaseUrl.substring(0, acceptCodeIndex + 1) + acceptCode + videoBaseUrl.substring(formateIndex)
+    url[VIDEO_URL] = videoBaseUrl.substring(0, acceptCodeIndex + 1) + acceptCode + videoBaseUrl.substring(formateIndex)
 }
 

@@ -3,6 +3,16 @@ var axios = require('axios')
 var ffmpeg = require('fluent-ffmpeg')
 var staticFFmpeg = require('ffmpeg-static-electron')
 
+import{ROOT_PATH, NUMBER, 
+    AUDIO_RECEIVED, 
+    VIDEO_RECEIVED,
+    VIDEO_PAGE, 
+    IS_OLD_VIDEO,
+    VIDEO_PROGRESS,
+    AUDIO_PROGRESS,
+    AUDIO_URL
+} from '../constants'
+
 // used to cancel downloading
 var CancelToken = axios.CancelToken;
 var cancelSource = CancelToken.source();
@@ -27,14 +37,17 @@ exports.startDownload = async (downloadInfo, callback) => {
 
     // console.log("start download" + JSON.stringify(downloadInfo))
 
-    var rootPath = downloadInfo["rootPath"]
-    var avNumber = downloadInfo["avNumber"]
-    var audioReceived = downloadInfo["audioReceived"]
-    var videoReceived = downloadInfo["videoReceived"]
-    var part = downloadInfo["part"]
-    var isOldVideo = downloadInfo["isOldVideo"]
+    var rootPath = downloadInfo[ROOT_PATH]
+    var avNumber = downloadInfo[NUMBER]
+    var audioReceived = downloadInfo[AUDIO_RECEIVED]
+    var videoReceived = downloadInfo[VIDEO_RECEIVED]
+    var part = downloadInfo[VIDEO_PAGE]
+    var isOldVideo = downloadInfo[IS_OLD_VIDEO]
+    var videoUrl = downloadInfo[VIDEO_URL]
+    var audioUrl = downloadInfo[AUDIO_URL]
     var videoPath = ""
     var audioPath = ""
+
     if (!isOldVideo) {
         videoPath = rootPath + "/" + avNumber + "/" + part + "-v.m4s"
         audioPath = rootPath + "/" + avNumber + "/" + part + "-a.m4s"
@@ -49,34 +62,16 @@ exports.startDownload = async (downloadInfo, callback) => {
         // BigInt 和 Number 不是严格相等的，但是宽松相等的。 so use ==
         console.log("check existing files")
 
-        if (fs.existsSync(rootPath + '/' + avNumber)) {
-            if (fs.existsSync(videoPath)) {
-                if (!(videoReceived == fs.statSync(videoPath)["size"])) {
-                    fs.unlinkSync(videoPath)
-                    videoReceived = 0
-                }
-            }
-
-            if (fs.existsSync(audioPath)) {
-                if (!(audioReceived == fs.statSync(audioPath)["size"])) {
-                    fs.unlinkSync(audioPath)
-                    audioReceived = 0
-                }
-            }
-        } else {
-            fs.mkdirSync(rootPath + '/' + avNumber)
-            videoReceived = 0
-            audioReceived = 0
-        }
+        ({ videoReceived, audioReceived } = syncDownloadProgress(rootPath, avNumber, videoPath, videoReceived, audioPath, audioReceived));
 
         var videoFinished = false
         var audioFinished = false
         console.log("download video")
 
-        await download(downloadInfo["videoUrl"], avNumber, part, videoPath, videoReceived,
+        await download(videoUrl, avNumber, part, videoPath, videoReceived,
             async (received_bytes, total_bytes) => {
                 // var progress = Math.round(received_bytes / total_bytes * 100)
-                callback("videoProgress", received_bytes, total_bytes)
+                callback(VIDEO_PROGRESS, received_bytes, total_bytes)
             })
             .then(async () => {
                 videoFinished = true
@@ -88,10 +83,10 @@ exports.startDownload = async (downloadInfo, callback) => {
         // old video does not split video and audio
         if (!isOldVideo) {
             console.log("download audio")
-            await download(downloadInfo["audioUrl"], avNumber, part, audioPath, audioReceived,
+            await download(audioUrl, avNumber, part, audioPath, audioReceived,
                 async (received_bytes, total_bytes) => {
                     // var progress = Math.round(received_bytes / total_bytes * 100)
-                    callback("audioProgress", received_bytes, total_bytes)
+                    callback(AUDIO_PROGRESS, received_bytes, total_bytes)
                 })
                 .then(async () => {
                     audioFinished = true
@@ -100,9 +95,12 @@ exports.startDownload = async (downloadInfo, callback) => {
                     reject(error)
                 })
 
-            if (videoFinished && audioFinished) {
-                resolve()
-            }
+        }else{
+            audioFinished = true
+        }
+
+        if (videoFinished && audioFinished) {
+            resolve()
         }
     })
 
@@ -144,6 +142,29 @@ exports.stopMergingFiles = () => {
     if (ffmpegCommand != null) {
         ffmpegCommand.kill("SIGSTOP")
     }
+}
+
+function syncDownloadProgress(rootPath, avNumber, videoPath, videoReceived, audioPath, audioReceived) {
+    if (fs.existsSync(rootPath + '/' + avNumber)) {
+        if (fs.existsSync(videoPath)) {
+            if (!(videoReceived == fs.statSync(videoPath)["size"])) {
+                fs.unlinkSync(videoPath);
+                videoReceived = 0;
+            }
+        }
+        if (fs.existsSync(audioPath)) {
+            if (!(audioReceived == fs.statSync(audioPath)["size"])) {
+                fs.unlinkSync(audioPath);
+                audioReceived = 0;
+            }
+        }
+    }
+    else {
+        fs.mkdirSync(rootPath + '/' + avNumber);
+        videoReceived = 0;
+        audioReceived = 0;
+    }
+    return { videoReceived, audioReceived };
 }
 
 // download file

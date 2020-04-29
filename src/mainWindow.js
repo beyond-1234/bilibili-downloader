@@ -19,6 +19,7 @@ export function createWindow() {
 		}
 	})
 
+	global.sharedObject[taskWindowId] = win.webContents.id
 
 	if (process.env.WEBPACK_DEV_SERVER_URL) {
 		// Load the url of the dev server if in development mode
@@ -35,3 +36,20 @@ export function createWindow() {
 	})
 }
 
+export function checkExists(){
+	return win == null
+}
+
+export function closeWindow() {
+    if (win != null) {
+        win.close()
+    }
+}
+
+export function getId(){
+	if(win == null){
+		return -1
+	}else{
+		return win.webContents.id
+	}
+}

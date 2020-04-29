@@ -1,3 +1,18 @@
+import {
+    NUMBER,
+    TITLE,
+    DESC,
+    ACCEPT,
+    IS_OLD_VIDEO,
+    UP_NAME,
+    PAGE_COUNT,
+    VIDEO_PAGE,
+    URLS,
+    HAS_ERROR,
+    ERROR,
+    VIDEO_PAGES
+} from "../constants";
+
 export function clone(obj) {
     var o;
     if (typeof obj == "object") {
@@ -24,17 +39,16 @@ export function clone(obj) {
 
 export function getEmptyVideoData() {
     return {
-        id: "",
-        number: "",
-        title: "",
-        desc: "",
-        accept: [],
-        isOldVideo: false,
-        upName: "",
-        pageCount: 0,
-        pages: [],
-        urls: [],
-        hasError: false,
-        error: {}
+        [NUMBER]: "",
+        [TITLE]: "",
+        [DESC]: "",
+        [ACCEPT]: [],
+        [IS_OLD_VIDEO]: false,
+        [UP_NAME]: "",
+        [PAGE_COUNT]: 0,
+        [VIDEO_PAGES]: [],
+        [URLS]: [],
+        [HAS_ERROR]: false,
+        [ERROR]: {}
     }
 }

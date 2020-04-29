@@ -4,6 +4,7 @@ import {
 	createProtocol,
 	/* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
+import { TASK_WINDOW_ID, START_DOWNLOAD } from './constants'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -17,19 +18,16 @@ export function createWindow() {
         height: 768,
         resizable: false,
         webPreferences: {
-            preload: join(__dirname, 'preload.js'),
             nodeIntegration: true,
             webSecurity: false
         }
     })
 
-    taskWin.loadFile('merger/merge.html')
+    global.sharedObject[TASK_WINDOW_ID] = win.webContents.id
+
+    // taskWin.loadFile('merger/merge.html')
 
     taskWin.webContents.openDevTools()
-
-    global.sharedObject["mergeWindowId"] = taskWin.webContents.id
-
-    console.log(JSON.stringify(global.sharedObject))
 
     if (process.env.WEBPACK_DEV_SERVER_URL) {
 		// Load the url of the dev server if in development mode
@@ -51,9 +49,20 @@ export function createWindow() {
 
 }
 
+export function checkExists(){
+    return taskWin == null
+}
+
 export function closeWindow() {
     if (taskWin != null) {
         taskWin.close()
     }
 }
 
+export function getId(){
+	if(taskWin == null){
+		return -1
+	}else{
+		return taskWin.webContents.id
+	}
+}

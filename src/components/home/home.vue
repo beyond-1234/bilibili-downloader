@@ -133,7 +133,20 @@
 <script>
 import { getInfo, getUrl } from "../../util/videoUtil.js";
 import { ipcRenderer } from "electron";
-// import { clone, getEmptyVideoData } from '../../util/util';
+import { SHARED_OBJECT, START_DOWNLOAD, 
+        TASK_WINDOW_ID, START_TASK_WINDOW,
+        VIDEO_DATA,
+        ROOT_PATH,
+        SEARCH_HISTORY,
+        VIDEO_PAGES,
+        URLS,
+        IS_OLD_VIDEO,
+        VIDEO_PAGE,
+        SELECT,
+        ACCEPT_CODE,
+        ACCEPT,
+        ERROR,
+        HAS_ERROR} from "../../constants";
 
 const constants = require("../../constants");
 
@@ -148,34 +161,33 @@ export default {
 			rootPath: "",
 			searchHistory: [],
 			videoData: {
-				id: "",
-				number: "",
-				title: "",
-				desc: "",
-				accept: [],
-				isOldVideo: false,
-				upName: "",
-				pageCount: 0,
-				pages: [],
-				urls: [],
-				hasError: false,
-				error: {}
+				[NUMBER]: "",
+				[TITLE]: "",
+				[DESC]: "",
+				[ACCEPT]: [],
+				[IS_OLD_VIDEO]: false,
+				[UP_NAME]: "",
+				[PAGE_COUNT]: 0,
+				[VIDEO_PAGES]: [],
+				[URLS]: [],
+				[HAS_ERROR]: false,
+				[ERROR]: {}
 			}
 		};
 	},
 	props: [],
 	mounted() {
 		// get rootpath
-		if (localStorage.getItem("rootPath")) {
-			this.rootPath = localStorage.getItem("rootPath");
+		if (localStorage.getItem(ROOT_PATH)) {
+			this.rootPath = localStorage.getItem(ROOT_PATH);
 		} else {
 			this.rootPath = require("electron").remote.app.getPath("downloads");
 		}
 
 		// get search history
-		if (localStorage.getItem("searchHistory")) {
+		if (localStorage.getItem(SEARCH_HISTORY)) {
 			// searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
-			this.searchHistory = localStorage.getItem("searchHistory").split(",");
+			this.searchHistory = localStorage.getItem(SEARCH_HISTORY).split(",");
 		}
 	},
 	methods: {
@@ -188,7 +200,7 @@ export default {
 					if (result.filePaths.length == 1) {
 						this.rootPath = result.filePaths[0];
 						// store
-						localStorage.setItem("rootPath", this.rootPath);
+						localStorage.setItem(ROOT_PATH, this.rootPath);
 					}
 				})
 				.catch(err => {
@@ -206,8 +218,8 @@ export default {
 
 			// console.log(this.videoData);
 
-			if (this.videoData["hasError"]) {
-				console.log(this.videoData["error"]);
+			if (this.videoData[HAS_ERROR]) {
+				console.log(this.videoData[ERROR]);
 				return;
 			}
 
@@ -220,25 +232,57 @@ export default {
 			if (this.searchHistory.length == 101) {
 				this.searchHistory.pop();
 			}
-			localStorage.setItem("searchHistory", this.searchHistory);
+			localStorage.setItem(SEARCH_HISTORY, this.searchHistory);
+		},
+		startDownload() {
+			this.downloadButtonDisabled = true;
+
+			if (this.videoData[URLS].length == 0) {
+				this.doGetVideoData();
+			}
+
+			// var data = clone(this.videoData)
+			// this.videoData["id"] = new Date().getTime().toString();
+			// console.log(data)
+
+			doSendToTaskWin(this.videoData, this.rootPath);
+
+			this.downloadButtonDisabled = false;
+		},
+		cancel() {
+			this.showDetail = false;
+			// this.videoData = getEmptyVideoData()
+		},
+		doSendToTaskWin(data, path) {
+			var taskWinId = require("electron").remote.getGlobal(SHARED_OBJECT)[TASK_WINDOW_ID];
+
+			if (taskWindowId == NaN || taskWindowId <= 0) {
+				ipcRenderer.sendSync(START_TASK_WINDOW, true);
+			}
+
+			// ipc send will pass args by value not by ref
+			ipcRenderer.sendTo(taskWinId, START_DOWNLOAD, {
+				[VIDEO_DATA]: data,
+				[ROOT_PATH]: path
+			});
 		},
 		doGetVideoData() {
 			var acceptCode = -1;
 			var urls = [];
 
-			this.videoData["accept"].forEach(item => {
-				if (item["select"]) acceptCode = item["acceptCode"];
+			this.videoData[ACCEPT].forEach(item => {
+				if (item[SELECT]) acceptCode = item[ACCEPT_CODE];
 			});
 
 			if (acceptCode == -1) return;
 
-			this.videoData["pages"].forEach(item => {
-				if (item["select"]) {
+			this.videoData[VIDEO_PAGES].forEach(item => {
+				if (item[SELECT]) {
 					getUrl(
 						this.videoData.number,
 						acceptCode,
-						item["page"],
-						this.videoData["isOldVideo"]
+						item[VIDEO_PAGE],
+						this.videoData[IS_OLD_VIDEO]
 					)
 						.then(url => {
 							urls.push(url);
@@ -249,26 +293,7 @@ export default {
 				}
 			});
 
-			this.videoData["urls"] = urls;
-		},
-		startDownload() {
-			this.downloadButtonDisabled = true;
-
-			if (this.videoData["urls"].length == 0) {
-				this.doGetVideoData();
-			}
-
-			// var data = clone(this.videoData)
-			this.videoData["id"] = new Date().getTime().toString();
-			// console.log(data)
-			// ipc send will pass args by value not by ref
-			ipcRenderer.send(constants.startDownload, this.videoData);
-
-			this.downloadButtonDisabled = false;
-		},
-		cancel() {
-			this.showDetail = false;
-			// this.videoData = getEmptyVideoData()
+			this.videoData[URLS] = urls;
 		}
 	}
 };
