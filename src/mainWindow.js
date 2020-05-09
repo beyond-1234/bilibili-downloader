@@ -5,6 +5,7 @@ import {
 	createProtocol,
 	/* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
+import { MAIN_WINDOW_ID } from './constants'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -13,13 +14,16 @@ let win
 export function createWindow() {
 	// Create the browser window.
 	win = new BrowserWindow({
-		width: 800, height: 600, webPreferences: {
+        width: 1024,
+		height: 768,
+		title: "Main",
+		webPreferences: {
 			nodeIntegration: true,
 			webSecurity: false
 		}
 	})
 
-	global.sharedObject[taskWindowId] = win.webContents.id
+	global.sharedObject[MAIN_WINDOW_ID] = win.webContents.id
 
 	if (process.env.WEBPACK_DEV_SERVER_URL) {
 		// Load the url of the dev server if in development mode

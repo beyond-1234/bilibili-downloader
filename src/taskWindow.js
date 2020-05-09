@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, webFrame } from 'electron'
 import { join } from 'path'
 import {
 	createProtocol,
@@ -13,7 +13,7 @@ let taskWin
 export function createWindow() {
     // Create the browser window.
     taskWin = new BrowserWindow({
-        show: true,
+        show: false,
         width: 1024,
         height: 768,
         resizable: false,
@@ -23,20 +23,23 @@ export function createWindow() {
         }
     })
 
-    global.sharedObject[TASK_WINDOW_ID] = win.webContents.id
+    global.sharedObject[TASK_WINDOW_ID] = taskWin.webContents.id
 
-    // taskWin.loadFile('merger/merge.html')
+    // taskWin.loadFile('task/task.html')
+    // taskWin.loadURL('app://./task.html')
 
     taskWin.webContents.openDevTools()
 
+    // taskWin.loadURL("http://www.bilibili.com")
+
     if (process.env.WEBPACK_DEV_SERVER_URL) {
 		// Load the url of the dev server if in development mode
-		win.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
-		if (!process.env.IS_TEST) win.webContents.openDevTools()
+		taskWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL)
+		if (!process.env.IS_TEST) taskWin.webContents.openDevTools()
 	} else {
 		createProtocol('app')
 		// Load the index.html when not in development
-		win.loadURL('app://./index.html')
+		taskWin.loadFile('app://./index.html')
 	}
 
     // Emitted when the window is closed.

@@ -3,7 +3,7 @@ import { getEmptyVideoData } from './util'
 import { IS_OLD_VIDEO, HAS_ERROR, ERROR, 
     TITLE, DESC, UP_NAME, VIDEO_PAGE, 
     SELECT, VIDEO_PAGE_NAME, PAGE_COUNT, 
-    ACCEPT, ACCEPT_CODE, ACCEPT_NAME, VIDEO_URL, AUDIO_URL } from '../constants'
+    ACCEPTS, ACCEPT_CODE, ACCEPT_NAME, VIDEO_URL, AUDIO_URL, NUMBER, VIDEO_PAGES } from '../constants'
 
 // var acceptDic = {
 //     "高清 1080P+": 112,
@@ -37,7 +37,7 @@ export async function getInfo(avNumber) {
     await get(referer)
         .then(function (response) {
 
-            videoData["number"] = avNumber
+            videoData[NUMBER] = avNumber
 
             var scripts = response["data"].match(/<script>.+?<\/script>/g)
 
@@ -81,7 +81,7 @@ function getVideoInfo(script, videoData) {
     //add parts info
     for (let index = 0; index < init_stat["videoData"]["pages"].length; index++) {
         const key = init_stat["videoData"]["pages"][index];
-        videoData[VIDEO_PAGE].push({
+        videoData[VIDEO_PAGES].push({
             [VIDEO_PAGE]: key["page"],
             [VIDEO_PAGE_NAME]: key["part"],
             [SELECT]: false
@@ -120,10 +120,10 @@ function getNewVideoAccepts(scripts, videoData) {
         const elm = play_info["data"]["dash"]["video"][index];
         var acceptCode = elm["id"]
         // console.log(acceptCode)
-        videoData[ACCEPT].push({
+        videoData[ACCEPTS].push({
             [ACCEPT_CODE]: acceptCode,
             [ACCEPT_NAME]: acceptDicRev[acceptCode],
-            [SELECT]: false
+            [SELECT]: -1
         })
         // videoData["accept"][acceptCode] = acceptDicRev[acceptCode]
     }
@@ -149,16 +149,16 @@ function getOldVideoAccepts(scripts, videoData) {
     //add accept info, let user choose one
     for (let index = 0; index < play_info["data"]["accept_quality"].length; index++) {
         const acceptCode = play_info["data"]["accept_quality"][index];
-        videoData[ACCEPT].push({
+        videoData[ACCEPTS].push({
             [ACCEPT_CODE]: acceptCode,
             [ACCEPT_NAME]: acceptDicRev[acceptCode],
-            [SELECT]: false
+            [SELECT]: -1
         })
     }
 }
 
 
-export async function getUrl(avNumber, acceptCode, part, isOld) {
+export function getUrl(avNumber, acceptCode, part, isOld) {
 
     var url = {
         [VIDEO_PAGE]: part,

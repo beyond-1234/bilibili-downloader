@@ -57,11 +57,61 @@
 </template>
 
 <script>
+
+import { ipcRenderer } from "electron";
+import { SHARED_OBJECT, ADD_TO_DOWNLOAD_LIST, 
+        TASK_WINDOW_ID, START_TASK_WINDOW,
+        VIDEO_DATA,
+        ROOT_PATH,
+        SEARCH_HISTORY,
+        VIDEO_PAGES,
+        URLS,
+        IS_OLD_VIDEO,
+        VIDEO_PAGE,
+        SELECT,
+        ACCEPT_CODE,
+        ACCEPTS,
+        ERROR,
+        HAS_ERROR,
+        NUMBER,
+        TITLE,
+        DESC,
+        UP_NAME,
+        PAGE_COUNT,
+        DOWNLOAD_FINISHED,
+        TASK_ID,
+        UPDATE_PROGRESS,DOWNLOAD_FAILED} from "../../constants";
+
 export default {
   name: "downloadList",
   props: {},
   data() {
-    return {};
+    return {
+      list:[]
+    };
+  },
+  mounted(){
+
+    ipcRenderer.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
+      console.log("get downloading item")
+      console.log(args)
+
+      // this.downloadList.list.push(args)
+      // console.log(exports)
+
+    })
+    ipcRenderer.on(DOWNLOAD_FINISHED, (event, args) => {
+      console.log(this.list)
+      console.log("download finished receive")
+    })
+    ipcRenderer.on(DOWNLOAD_FAILED, (event, args) => {
+      console.log(this.list)
+    })
+    ipcRenderer.on(UPDATE_PROGRESS, (event, args) => {
+      console.log(this.list)
+    })
   }
 };
+
+
 </script>

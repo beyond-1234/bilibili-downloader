@@ -21,7 +21,7 @@
 
 					<div class="field">
 						<p class="subtitle is-5">UP:</p>
-						<p id="up-p" class="title is-6">{{videoData.up}}</p>
+						<p id="up-p" class="title is-6">{{videoData.upName}}</p>
 					</div>
 
 					<div class="field">
@@ -36,7 +36,7 @@
 						id="radio-parent"
 						class="control"
 						style="margin-bottom: 10px !important;"
-						v-for="item in videoData['accept']"
+						v-for="item in videoData.accepts"
 						:key="item.acceptCode"
 					>
 						<label :id="`label${item.acceptCode}`">
@@ -56,7 +56,7 @@
 						<div id="part-div" v-for="p in videoData.pages" :key="p.page">
 							<label :id="`label${p.page}`" class="checkbox">
 								<input type="checkbox" :id="`check${p.page}`" v-model="p.select" />
-								{{p.partName}}
+								{{p.pageName}}
 							</label>
 							<p></p>
 						</div>
@@ -118,7 +118,7 @@
 							<div class="tile is-child box">
 								<p class="title">History</p>
 								<ul id="history-ul">
-									<li v-for="item of searchHistory" :key="item">{{ item }}</li>
+									<li v-for="item of searchHistory" :key="item.id">{{ item.input }}</li>
 								</ul>
 							</div>
 						</div>
@@ -131,24 +131,33 @@
 
 
 <script>
-import { getInfo, getUrl } from "../../util/videoUtil.js";
+import * as videoUtil from "../../util/videoUtil.js";
 import { ipcRenderer } from "electron";
-import { SHARED_OBJECT, START_DOWNLOAD, 
-        TASK_WINDOW_ID, START_TASK_WINDOW,
-        VIDEO_DATA,
-        ROOT_PATH,
-        SEARCH_HISTORY,
-        VIDEO_PAGES,
-        URLS,
-        IS_OLD_VIDEO,
-        VIDEO_PAGE,
-        SELECT,
-        ACCEPT_CODE,
-        ACCEPT,
-        ERROR,
-        HAS_ERROR} from "../../constants";
-
-const constants = require("../../constants");
+import {
+	SHARED_OBJECT,
+	ADD_TO_DOWNLOAD_LIST,
+	TASK_WINDOW_ID,
+	START_TASK_WINDOW,
+	VIDEO_DATA,
+	ROOT_PATH,
+	SEARCH_HISTORY,
+	VIDEO_PAGES,
+	URLS,
+	IS_OLD_VIDEO,
+	VIDEO_PAGE,
+	SELECT,
+	ACCEPT_CODE,
+	ACCEPTS,
+	ERROR,
+	HAS_ERROR,
+	NUMBER,
+	TITLE,
+	DESC,
+	UP_NAME,
+	PAGE_COUNT,
+	DOWNLOAD_FINISHED,
+	TASK_ID
+} from "../../constants";
 
 export default {
 	name: "home",
@@ -164,7 +173,7 @@ export default {
 				[NUMBER]: "",
 				[TITLE]: "",
 				[DESC]: "",
-				[ACCEPT]: [],
+				[ACCEPTS]: [],
 				[IS_OLD_VIDEO]: false,
 				[UP_NAME]: "",
 				[PAGE_COUNT]: 0,
@@ -186,8 +195,8 @@ export default {
 
 		// get search history
 		if (localStorage.getItem(SEARCH_HISTORY)) {
-			// searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
-			this.searchHistory = localStorage.getItem(SEARCH_HISTORY).split(",");
+			this.searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
+			// this.searchHistory = localStorage.getItem(SEARCH_HISTORY).split(",");
 		}
 	},
 	methods: {
@@ -214,7 +223,7 @@ export default {
 				return;
 			}
 
-			this.videoData = await getInfo(searchNumber[0]);
+			this.videoData = await videoUtil.getInfo(searchNumber[0]);
 
 			// console.log(this.videoData);
 
@@ -228,24 +237,25 @@ export default {
 		},
 		updateHistory() {
 			// this.searchHistory.push(this.searchInput)
-			this.searchHistory.splice(0, 0, this.searchInput);
+			this.searchHistory.splice(0, 0, {
+				id:new Date().getTime().toString(),
+				input:this.searchInput
+			});
 			if (this.searchHistory.length == 101) {
 				this.searchHistory.pop();
 			}
-			localStorage.setItem(SEARCH_HISTORY, this.searchHistory);
+			localStorage.setItem(SEARCH_HISTORY, JSON.stringify(this.searchHistory));
 		},
 		startDownload() {
 			this.downloadButtonDisabled = true;
 
-			if (this.videoData[URLS].length == 0) {
-				this.doGetVideoData();
-			}
-
-			// var data = clone(this.videoData)
-			// this.videoData["id"] = new Date().getTime().toString();
-			// console.log(data)
-
-			doSendToTaskWin(this.videoData, this.rootPath);
+			this.doGetVideoData()
+				.then(() => {
+					this.doSendToTaskWin();
+				})
+				.catch(() => {
+					return;
+				});
 
 			this.downloadButtonDisabled = false;
 		},
@@ -253,47 +263,57 @@ export default {
 			this.showDetail = false;
 			// this.videoData = getEmptyVideoData()
 		},
-		doSendToTaskWin(data, path) {
-			var taskWinId = require("electron").remote.getGlobal(SHARED_OBJECT)[TASK_WINDOW_ID];
-
-			if (taskWindowId == NaN || taskWindowId <= 0) {
-				ipcRenderer.sendSync(START_TASK_WINDOW, true);
-			}
-
+		// argument urls is for a weird bug
+		// for the first time to start download, you can not tansfer urls inside videoData
+		// i really don't know why.....
+		doSendToTaskWin() {
+			
 			// ipc send will pass args by value not by ref
-			ipcRenderer.sendTo(taskWinId, START_DOWNLOAD, {
-				[VIDEO_DATA]: data,
-				[ROOT_PATH]: path
+			ipcRenderer.send(ADD_TO_DOWNLOAD_LIST, {
+				// [URLS]: ,
+				[VIDEO_DATA]: this.videoData,
+				[ROOT_PATH]: this.rootPath
 			});
 		},
 		doGetVideoData() {
 			var acceptCode = -1;
-			var urls = [];
+			// var urls = [];
+			console.log("getting url");
 
-			this.videoData[ACCEPT].forEach(item => {
-				if (item[SELECT]) acceptCode = item[ACCEPT_CODE];
+			this.videoData[ACCEPTS].forEach(item => {
+				if (item[SELECT] > 0) acceptCode = item[ACCEPT_CODE];
 			});
 
 			if (acceptCode == -1) return;
 
-			this.videoData[VIDEO_PAGES].forEach(item => {
-				if (item[SELECT]) {
-					getUrl(
-						this.videoData.number,
-						acceptCode,
-						item[VIDEO_PAGE],
-						this.videoData[IS_OLD_VIDEO]
-					)
-						.then(url => {
-							urls.push(url);
-						})
-						.catch(error => {
-							console.log(error);
-						});
-				}
+			return new Promise((resolve, reject) => {
+				this.videoData[VIDEO_PAGES].forEach(item => {
+					console.log("getting url inside");
+					if (item[SELECT]) {
+						videoUtil
+							.getUrl(
+								this.videoData.number,
+								acceptCode,
+								item[VIDEO_PAGE],
+								this.videoData[IS_OLD_VIDEO]
+							)
+							.then(url => {
+								console.log(url);
+								this.videoData[URLS].push(url);
+								resolve();
+							})
+							.catch(error => {
+								this.videoData[HAS_ERROR] = true;
+								this.videoData[ERROR] = error;
+								console.log(error);
+								reject();
+							});
+					}
+				});
 			});
-
-			this.videoData[URLS] = urls;
+			// urls.forEach(item => {
+			// 	this.videoData[URLS].push(item);
+			// })
 		}
 	}
 };

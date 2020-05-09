@@ -22,19 +22,22 @@
 
       <downloadList v-bind:class="{ 'hide': cur != 1}"></downloadList>
     </div>
+  <task></task>
   </div>
 </template>
 
 <script>
 import home from "./components/home/home.vue"
 import downloadList from "./components/list/downloadList.vue"
+import task from "./components/task/task.vue"
 // import detail from "./components/detail/detail.vue";
 
 export default {
   name: "App",
   components: {
     home,
-    downloadList
+    downloadList,
+    task
   },
   data() {
     return {
@@ -54,12 +57,6 @@ export default {
     } else {
       this.rootPath = require("electron").remote.app.getPath("downloads");
     }
-
-    // // get search history
-    // if (localStorage.getItem("searchHistory")) {
-    //   // searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
-    //   this.searchHistory = localStorage.getItem("searchHistory").split(",");
-    // }
 
     // get lists
     for (var i = 0, len = localStorage.length; i < len; ++i) {

@@ -1,7 +1,8 @@
 var fs = require('fs')
 var axios = require('axios')
-var ffmpeg = require('fluent-ffmpeg')
+axios.defaults.adapter = require('axios/lib/adapters/http');
 var staticFFmpeg = require('ffmpeg-static-electron')
+var ffmpeg = require('fluent-ffmpeg')
 
 import{ROOT_PATH, NUMBER, 
     AUDIO_RECEIVED, 
@@ -10,34 +11,30 @@ import{ROOT_PATH, NUMBER,
     IS_OLD_VIDEO,
     VIDEO_PROGRESS,
     AUDIO_PROGRESS,
-    AUDIO_URL
+    AUDIO_URL,
+    VIDEO_URL,
+    ACCEPT_NAME,
+    VIDEO_PATH,
+    AUDIO_PATH,
+    OUTPUT
 } from '../constants'
 
 // used to cancel downloading
 var CancelToken = axios.CancelToken;
 var cancelSource = CancelToken.source();
+var ffmpegCommand
 
-var using = false
 
-exports.isAvailable = () => {
-    return !using
-}
+/**
+ * download video and audio
+ * info renderer process to update progress
+ */
+export async function startDownload(downloadInfo, callback) {
 
-exports.occupy = () => {
-    using = true
-}
-
-exports.free = () => {
-    using = false
-}
-
-// download video and audio
-// info renderer process to update progress
-exports.startDownload = async (downloadInfo, callback) => {
-
-    // console.log("start download" + JSON.stringify(downloadInfo))
+    console.log("start download" + JSON.stringify(downloadInfo))
 
     var rootPath = downloadInfo[ROOT_PATH]
+    var acceptName = downloadInfo[ACCEPT_NAME]
     var avNumber = downloadInfo[NUMBER]
     var audioReceived = downloadInfo[AUDIO_RECEIVED]
     var videoReceived = downloadInfo[VIDEO_RECEIVED]
@@ -45,30 +42,34 @@ exports.startDownload = async (downloadInfo, callback) => {
     var isOldVideo = downloadInfo[IS_OLD_VIDEO]
     var videoUrl = downloadInfo[VIDEO_URL]
     var audioUrl = downloadInfo[AUDIO_URL]
-    var videoPath = ""
-    var audioPath = ""
+    var videoPath = downloadInfo[IS_OLD_VIDEO] ? downloadInfo[OUTPUT] : downloadInfo[VIDEO_PATH]
+    var audioPath = downloadInfo[AUDIO_PATH]
+    var output = downloadInfo[OUTPUT]
+    var videoFinished = false
+    var audioFinished = false
 
-    if (!isOldVideo) {
-        videoPath = rootPath + "/" + avNumber + "/" + part + "-v.m4s"
-        audioPath = rootPath + "/" + avNumber + "/" + part + "-a.m4s"
-    } else {
-        videoPath = rootPath + "/" + avNumber + "-" + part + ".flv"
-    }
+    // if (!isOldVideo) {
+    //     videoPath = `${rootPath}/${avNumber}/${part}-v-${acceptName}.m4s`
+    //     audioPath = `${rootPath}/${avNumber}/${part}-a-${acceptName}.m4s`
+    // } else {
+    //     videoPath = `${rootPath}/${avNumber}/${part}-${acceptName}.flv`
+    // }
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) =>   {
 
         // stat method return a Stats object
         // size property in Stats object is bigInt type
         // BigInt 和 Number 不是严格相等的，但是宽松相等的。 so use ==
         console.log("check existing files")
 
-        ({ videoReceived, audioReceived } = syncDownloadProgress(rootPath, avNumber, videoPath, videoReceived, audioPath, audioReceived));
+        var s =
+            syncDownloadProgress(rootPath, avNumber, videoPath, videoReceived, audioPath, audioReceived)
+        videoReceived = s[0]
+        audioReceived = s[1]
 
-        var videoFinished = false
-        var audioFinished = false
         console.log("download video")
 
-        await download(videoUrl, avNumber, part, videoPath, videoReceived,
+         doDownload(videoUrl, avNumber, part, videoPath, videoReceived,
             async (received_bytes, total_bytes) => {
                 // var progress = Math.round(received_bytes / total_bytes * 100)
                 callback(VIDEO_PROGRESS, received_bytes, total_bytes)
@@ -83,7 +84,7 @@ exports.startDownload = async (downloadInfo, callback) => {
         // old video does not split video and audio
         if (!isOldVideo) {
             console.log("download audio")
-            await download(audioUrl, avNumber, part, audioPath, audioReceived,
+             doDownload(audioUrl, avNumber, part, audioPath, audioReceived,
                 async (received_bytes, total_bytes) => {
                     // var progress = Math.round(received_bytes / total_bytes * 100)
                     callback(AUDIO_PROGRESS, received_bytes, total_bytes)
@@ -106,26 +107,23 @@ exports.startDownload = async (downloadInfo, callback) => {
 
 }
 
-// merge audio and video files
-exports.mergeFiles = (rootPath, avNumber, part) => {
-
-    var path = rootPath + "/" + avNumber + 'Part' + part + ".flv"
-    var videoPath = rootPath + "/" + avNumber + '/' + part + "-v.m4s"
-    var audioPath = rootPath + "/" + avNumber + '/' + part + "-a.m4s"
+export function mergeFiles(videoPath, audioPath, output) {
     console.log("merging file")
     // delete temp file if exists
-    if (fs.existsSync(path)) { fs.unlinkSync(path) }
+    if (fs.existsSync(output)) { fs.unlinkSync(output) }
     // start merge files
     return new Promise((resolve, reject) => {
         ffmpegCommand = ffmpeg.setFfmpegPath(staticFFmpeg.path)
         ffmpeg()
             .addInput(videoPath)
             .addInput(audioPath)
-            .save(path)
+            .save(output)
             .on("end", () => {
                 console.log("complete")
 
-                this.deleteDirectory(rootPath + "/" + avNumber)
+                // this.deleteDirectory(rootPath + "/" + avNumber)
+                if(fs.existsSync(videoPath)){ fs.unlink(videoPath) }
+                if(fs.existsSync(audioPath)){ fs.unlink(audioPath) }
                 console.log("temp file deleted")
                 resolve()
             })
@@ -134,10 +132,42 @@ exports.mergeFiles = (rootPath, avNumber, part) => {
                 reject(error)
             })
     })
+
 }
+// merge audio and video files
+// exports.mergeFiles = (rootPath, avNumber, part) => {
+// export function mergeFiles(rootPath, avNumber, part) {
+//     var path = rootPath + "/" + avNumber + 'Part' + part + ".flv"
+//     var videoPath = rootPath + "/" + avNumber + '/' + part + "-v.m4s"
+//     var audioPath = rootPath + "/" + avNumber + '/' + part + "-a.m4s"
+//     console.log("merging file")
+//     // delete temp file if exists
+//     if (fs.existsSync(path)) { fs.unlinkSync(path) }
+//     // start merge files
+//     return new Promise((resolve, reject) => {
+//         ffmpegCommand = ffmpeg.setFfmpegPath(staticFFmpeg.path)
+//         ffmpeg()
+//             .addInput(videoPath)
+//             .addInput(audioPath)
+//             .save(path)
+//             .on("end", () => {
+//                 console.log("complete")
+
+//                 this.deleteDirectory(rootPath + "/" + avNumber)
+//                 // fs.unlink(videoPath)
+//                 // fs.unlink(audioPath)
+//                 console.log("temp file deleted")
+//                 resolve()
+//             })
+//             .on("error", (error) => {
+//                 // console.log(error)
+//                 reject(error)
+//             })
+//     })
+// }
 
 // // stop merging file (uesless)
-exports.stopMergingFiles = () => {
+export function stopMergingFiles() {
     console.log("stop merging")
     if (ffmpegCommand != null) {
         ffmpegCommand.kill("SIGSTOP")
@@ -164,11 +194,11 @@ function syncDownloadProgress(rootPath, avNumber, videoPath, videoReceived, audi
         videoReceived = 0;
         audioReceived = 0;
     }
-    return { videoReceived, audioReceived };
+    return [videoReceived, audioReceived ];
 }
 
 // download file
-function download(url, avNumber, part, path, received, callback) {
+function doDownload(url, avNumber, part, path, received, callback) {
 
     var authority = url.substring(8, url.indexOf("/", 8))
     var referer = "https://www.bilibili.com/video/" + avNumber + "?p=" + part
@@ -197,14 +227,16 @@ function download(url, avNumber, part, path, received, callback) {
             },
             cancelToken: cancelSource.token
         }).then(async (response) => {
+            console.log("response")
             // console.log(JSON.stringify(response["data"]))
             var total_bytes = response.headers['content-length']
             var received_bytes = received
             const writer = fs.createWriteStream(path, { flags: 'a' })
 
             response.data.on('data', async (chunk) => {
+                console.log("data")
                 received_bytes += chunk.length
-                await callback(received_bytes, total_bytes)
+                callback(received_bytes, total_bytes)
             })
             response.data.pipe(writer)
             response.data.on('end', () => {
@@ -220,14 +252,14 @@ function download(url, avNumber, part, path, received, callback) {
 
 }
 
-exports.deleteDirectory = (path) => {
+export function deleteDirectory (path) {
     var files = [];
     if (fs.existsSync(path)) {
         files = fs.readdirSync(path);
-        files.forEach(function (file, index) {
+        files.forEach(function (file) {
             var curPath = path + "/" + file;
             if (fs.statSync(curPath).isDirectory()) { // recurse
-                deleteDirectory(curPath);
+                this.deleteDirectory(curPath);
             } else { // delete file
                 fs.unlinkSync(curPath);
             }
@@ -237,7 +269,7 @@ exports.deleteDirectory = (path) => {
 
 }
 
-exports.cancel = () => {
+export function cancel() {
     console.log("cancel")
     cancelSource.cancel('cancel');
     // renew cancel token, so that other request will not be cancelled automatically

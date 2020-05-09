@@ -1,10 +1,60 @@
 'use strict'
 
 import { app, protocol, ipcMain, Menu, remote } from 'electron'
-import { startDownload, taskWindowId, sharedObject, startTaskWindow } from "./constants";
+
+import {
+	ADD_TO_DOWNLOAD_LIST,
+	ROOT_PATH,
+	NUMBER,
+	AUDIO_RECEIVED,
+	VIDEO_RECEIVED,
+	VIDEO_TOTAL,
+	AUDIO_TOTAL,
+	VIDEO_PAGE,
+	VIDEO_DATA,
+	IS_OLD_VIDEO,
+	VIDEO_URL,
+	URLS,
+	VIDEO_PAGE_NAME,
+	TITLE,
+	VIDEO_PROGRESS,
+	SHARED_OBJECT,
+	AUDIO_URL,
+	HAS_ERROR,
+	UPDATE_PROGRESS,
+	MAIN_WINDOW_ID,
+	TASK_WINDOW_ID,
+	DOWNLOAD_FAILED,
+	ERROR,
+	TASK_ID,
+	DOWNLOAD_FINISHED,
+	TASK_STATUS,
+	PAUSED_STATUS,
+	STOPPED_STATUS,
+	DOWNLOADING_STATUS,
+	MERGE_FAILED,
+	MERGE_FINISHED,
+	INDEX,
+	ACCEPT_CODE,
+	ACCEPT_NAME,
+	VIDEO_PAGES,
+	AUDIO_PROGRESS,
+	OUTPUT,
+	VIDEO_PATH,
+	AUDIO_PATH,
+	ACCEPTS,
+	SELECT,
+	VIDEO_FINISHED,
+	AUDIO_FINISHED
+} from "./constants";
+import * as downloadEngine from "./util/downloadEngine";
+
+
 const mainWindow = require('./mainWindow')
 const taskWindow = require('./taskWindow')
 
+var downloadList = [];
+var isAvailable = true;
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -26,7 +76,7 @@ app.on('activate', () => {
 	if (mainWindow.checkExists()) {
 		mainWindow.createWindow()
 	}
-	if(taskWindow.checkExists()){
+	if (taskWindow.checkExists()) {
 		taskWindow.createWindow()
 	}
 })
@@ -53,8 +103,8 @@ app.on('ready', async () => {
 
 
 	global.sharedObject = {
-		"mainWindowId": -1,
-		"taskWindowId": -1
+		[MAIN_WINDOW_ID]: -1,
+		[TASK_WINDOW_ID]: -1
 	}
 
 	Menu.setApplicationMenu(null)
@@ -77,18 +127,164 @@ if (isDevelopment) {
 		})
 	}
 }
+// background为中心，home组件的信息先传到background，由background管理，再发到downloadList组件
+// background向downloadList组件更新下载进度
+// decrepted 应用刚开始跑的时候background从localStorage里拿到缓存的list，再发给downloadList组件
+// 每个任务都要有下载中\暂停\stopped种状态，当一个任务完成或者失败，放到mainWindow相应的组件中的list里，需要重新下载的时候在发消息给background
+// 我知道ipc要走主进程，我知道效率低，但我不打算改了。就这样
 
-// user started a download task
-// create new task window(hidden) to download
-// notify ui to generate new download progress item
-ipcMain.on(startDownload, (event, args) => {
-	
-	var taskWinId = remote.getGlobal(sharedObject)[taskWindowId]
+// var mainWinId = require("electron").remote.getGlobal(SHARED_OBJECT)[
+// 	MAIN_WINDOW_ID
+// ];
 
 
-})
+ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
+	console.log("add to download list");
 
-// if task window is gone, start a new one
-ipcMain.on(startTaskWindow, (event, args) => {
-	taskWindow.createWindow()
-})
+	var acceptName = null
+	args[VIDEO_DATA][ACCEPTS].forEach(item => {
+		if (item[SELECT] > 0) acceptName = item[ACCEPT_NAME];
+	});
+
+	var startIndex = downloadList.length
+	console.log(args)
+	args[VIDEO_DATA][URLS].forEach(element => {
+		var task = {
+			[TASK_ID]: new Date().getTime().toString(),
+			[ROOT_PATH]: args[ROOT_PATH],
+			[TITLE]: args[VIDEO_DATA][TITLE],
+			[NUMBER]: args[VIDEO_DATA][NUMBER],
+			[ACCEPT_NAME]: acceptName,
+			[AUDIO_RECEIVED]: 0,
+			[VIDEO_RECEIVED]: 0,
+			[VIDEO_TOTAL]: 0,
+			[AUDIO_TOTAL]: 0,
+			[TASK_STATUS]: PAUSED_STATUS,
+			[VIDEO_PAGE]: element[VIDEO_PAGE],
+			[VIDEO_PAGE_NAME]: element[VIDEO_PAGE_NAME],
+			[IS_OLD_VIDEO]: args[VIDEO_DATA][IS_OLD_VIDEO],
+			[VIDEO_URL]: element[VIDEO_URL],
+			[AUDIO_URL]: element[AUDIO_URL],
+			[VIDEO_PATH]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-v-${acceptName}.m4s`,
+			[AUDIO_PATH]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-a-${acceptName}.m4s`,
+			[OUTPUT]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-${acceptName}.flv`,
+			// [VIDEO_FINISHED]: args[VIDEO_DATA][VIDEO_FINISHED],
+			// [AUDIO_FINISHED]: args[VIDEO_DATA][AUDIO_FINISHED],
+			[HAS_ERROR]: false,
+			[ERROR]: null
+		};
+		downloadList.push(task);
+	});
+
+	console.log(downloadList.length);
+	tryStartDownload(startIndex, event);
+});
+
+function tryStartDownload(index, event) {
+	console.log("tryStartDownload" + index);
+
+	var item = downloadList[index];
+
+	if (item === undefined || item === null) {
+		return;
+	}
+
+	if (!isAvailable) return;
+
+	doStartDownload(index, event);
+}
+
+function doStartDownload(index, event) {
+	console.log("doStartDownload");
+
+	isAvailable = false;
+
+	var item = downloadList[index];
+	item[TASK_STATUS] = DOWNLOADING_STATUS;
+
+	event.reply(ADD_TO_DOWNLOAD_LIST, item)
+
+	downloadEngine
+		.startDownload(item, (type, received_bytes, total_bytes) => {
+			updateProgressCallback(index, type, received_bytes, total_bytes, event)
+		})
+		.then(() => {
+			item[TASK_STATUS] = PAUSED_STATUS;
+			downloadFinished(index, event);
+		})
+		.catch(error => {
+			console.log(error);
+			item[HAS_ERROR] = true;
+			item[ERROR] = error;
+			item[TASK_STATUS] = STOPPED_STATUS;
+			downloadFailed(index, event);
+		});
+}
+
+// only download finished, need to merge
+function downloadFinished(index, event) {
+	event.reply(DOWNLOAD_FINISHED, {
+		[INDEX]:index,
+		[TASK_ID]: downloadList[index][TASK_ID]
+	});
+
+	//   downloadEngine
+	//     .mergeFiles(item[ROOT_PATH], item[NUMBER], item[VIDEO_PAGE])
+	//     .then(() => {
+	//       mergeFinished(index);
+	//     })
+	//     .catch(() => {
+	//       mergeFailed(index);
+	//     });
+}
+
+function downloadFailed(index, event) {
+	var item = downloadList[index];
+	event.reply(DOWNLOAD_FAILED, {
+		[INDEX]:index,
+		[TASK_ID]: item[TASK_ID],
+		[ERROR]: item[ERROR]
+	});
+
+	doHandleTaskStopped(index);
+}
+
+// function mergeFinished(index, event) {
+//   var item = downloadList[index];
+//   event.reply(MERGE_FINISHED, item);
+
+//   doHandleTaskStopped(index);
+// }
+
+// function mergeFailed(index, event) {
+//   var item = downloadList[index];
+//   event.reply(MERGE_FAILED, item);
+
+//   doHandleTaskStopped(index);
+// }
+
+function doHandleTaskStopped(index) {
+	downloadList.slice(index, index + 1);
+	isAvailable = true;
+}
+
+function updateProgressCallback(index, type, received_bytes, total_bytes, event) {
+	console.log("update progress");
+
+	var item = downloadList[index];
+	if (type === VIDEO_PROGRESS) {
+		item[VIDEO_TOTAL] = total_bytes;
+		item[VIDEO_RECEIVED] = received_bytes;
+	} else {
+		item[AUDIO_TOTAL] = total_bytes;
+		item[AUDIO_RECEIVED] = received_bytes;
+	}
+	event.reply(UPDATE_PROGRESS, {
+		[INDEX]:index,
+		[TASK_ID]: item[TASK_ID],
+		[VIDEO_RECEIVED]: item[VIDEO_RECEIVED],
+		[VIDEO_TOTAL]: item[VIDEO_TOTAL],
+		[AUDIO_RECEIVED]: item[AUDIO_RECEIVED],
+		[AUDIO_TOTAL]: item[AUDIO_TOTAL]
+	});
+}
