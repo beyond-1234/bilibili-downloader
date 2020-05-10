@@ -1,19 +1,21 @@
-import { BrowserWindow, webFrame } from 'electron'
+import { BrowserWindow, webFrame, ipcMain, ipcRenderer } from 'electron'
 import { join } from 'path'
 import {
 	createProtocol,
 	/* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
-import { TASK_WINDOW_ID, START_DOWNLOAD } from './constants'
+import { TASK_WINDOW_ID, TASK_WINDOW, START_DOWNLOAD, START_MERGE, OUTPUT, VIDEO_PATH, AUDIO_PATH } from './constants'
+
+import * as downloadEngine from "./util/downloadEngine";
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let taskWin
+let taskWinList = []
 
 export function createWindow() {
     // Create the browser window.
-    taskWin = new BrowserWindow({
-        show: false,
+    var taskWin = new BrowserWindow({
+        show: true,
         width: 1024,
         height: 768,
         resizable: false,
@@ -23,7 +25,7 @@ export function createWindow() {
         }
     })
 
-    global.sharedObject[TASK_WINDOW_ID] = taskWin.webContents.id
+    // global.sharedObject[TASK_WINDOW_ID] = taskWin.webContents.id
 
     // taskWin.loadFile('task/task.html')
     // taskWin.loadURL('app://./task.html')
@@ -50,22 +52,30 @@ export function createWindow() {
         taskWin = null
     })
 
+    taskWinList.push({
+        [TASK_WINDOW_ID]:taskWin.webContents.id,
+        [TASK_WINDOW]:taskWin
+    })
+
+    return taskWin.webContents.id
+
 }
 
-export function checkExists(){
-    return taskWin == null
-}
 
-export function closeWindow() {
-    if (taskWin != null) {
-        taskWin.close()
-    }
-}
+// export function checkExists(){
+//     return taskWin == null
+// }
 
-export function getId(){
-	if(taskWin == null){
-		return -1
-	}else{
-		return taskWin.webContents.id
-	}
-}
+// export function closeWindow() {
+//     if (taskWin != null) {
+//         taskWin.close()
+//     }
+// }
+
+// export function getId(){
+// 	if(taskWin == null){
+// 		return -1
+// 	}else{
+// 		return taskWin.webContents.id
+// 	}
+// }

@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import App from './App.vue'
 import bulma from 'bulma'
+
 // import VueRouter from 'vue-router'
 // import routers from './routers'
 // import axios from 'axios'

@@ -45,10 +45,14 @@ import {
 	ACCEPTS,
 	SELECT,
 	VIDEO_FINISHED,
-	AUDIO_FINISHED
+	AUDIO_FINISHED,
+	START_TASK_WINDOW,
+	WAITING_STATUS,
+	FOLDER
 } from "./constants";
 import * as downloadEngine from "./util/downloadEngine";
 
+const path = require('path')
 
 const mainWindow = require('./mainWindow')
 const taskWindow = require('./taskWindow')
@@ -103,13 +107,12 @@ app.on('ready', async () => {
 
 
 	global.sharedObject = {
-		[MAIN_WINDOW_ID]: -1,
-		[TASK_WINDOW_ID]: -1
+		[MAIN_WINDOW_ID]: -1
 	}
 
 	Menu.setApplicationMenu(null)
 	mainWindow.createWindow()
-	taskWindow.createWindow()
+	// taskWindow.createWindow()
 
 })
 
@@ -137,7 +140,8 @@ if (isDevelopment) {
 // 	MAIN_WINDOW_ID
 // ];
 
-
+// receive new tasks, add to list both in main process and downloadlist component
+// try to start it
 ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 	console.log("add to download list");
 
@@ -148,6 +152,12 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 
 	var startIndex = downloadList.length
 	console.log(args)
+
+	var folder = path.join(args[ROOT_PATH], args[VIDEO_DATA][TITLE] + args[VIDEO_DATA][NUMBER])
+	// var videoPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-v-" + acceptName + ".m4s")
+	// var audioPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-a-" + acceptName + ".m4s")
+	// var output = path.join(folder, element[VIDEO_PAGE] + "-" + element[VIDEO_PAGE_NAME] + "-" + acceptName + ".flv")
+
 	args[VIDEO_DATA][URLS].forEach(element => {
 		var task = {
 			[TASK_ID]: new Date().getTime().toString(),
@@ -159,21 +169,23 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 			[VIDEO_RECEIVED]: 0,
 			[VIDEO_TOTAL]: 0,
 			[AUDIO_TOTAL]: 0,
-			[TASK_STATUS]: PAUSED_STATUS,
+			[TASK_STATUS]: WAITING_STATUS,
 			[VIDEO_PAGE]: element[VIDEO_PAGE],
 			[VIDEO_PAGE_NAME]: element[VIDEO_PAGE_NAME],
 			[IS_OLD_VIDEO]: args[VIDEO_DATA][IS_OLD_VIDEO],
 			[VIDEO_URL]: element[VIDEO_URL],
 			[AUDIO_URL]: element[AUDIO_URL],
-			[VIDEO_PATH]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-v-${acceptName}.m4s`,
-			[AUDIO_PATH]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-a-${acceptName}.m4s`,
-			[OUTPUT]: `${args[ROOT_PATH]}/${args[VIDEO_DATA][NUMBER]}/${element[VIDEO_PAGE_NAME]}-${acceptName}.flv`,
+			[FOLDER]: folder,
+			[VIDEO_PATH]: path.join(folder, element[VIDEO_PAGE_NAME] + "-v-" + acceptName + ".m4s"),
+			[AUDIO_PATH]: path.join(folder, element[VIDEO_PAGE_NAME] + "-a-" + acceptName + ".m4s"),
+			[OUTPUT]: path.join(folder, element[VIDEO_PAGE] + "-" + element[VIDEO_PAGE_NAME] + "-" + acceptName + ".flv"),
 			// [VIDEO_FINISHED]: args[VIDEO_DATA][VIDEO_FINISHED],
 			// [AUDIO_FINISHED]: args[VIDEO_DATA][AUDIO_FINISHED],
 			[HAS_ERROR]: false,
 			[ERROR]: null
 		};
 		downloadList.push(task);
+		event.reply(ADD_TO_DOWNLOAD_LIST, task)
 	});
 
 	console.log(downloadList.length);
@@ -202,15 +214,15 @@ function doStartDownload(index, event) {
 	var item = downloadList[index];
 	item[TASK_STATUS] = DOWNLOADING_STATUS;
 
-	event.reply(ADD_TO_DOWNLOAD_LIST, item)
-
 	downloadEngine
 		.startDownload(item, (type, received_bytes, total_bytes) => {
 			updateProgressCallback(index, type, received_bytes, total_bytes, event)
 		})
 		.then(() => {
-			item[TASK_STATUS] = PAUSED_STATUS;
+			// item[TASK_STATUS] = PAUSED_STATUS;
+			console.log("background.js download finished")
 			downloadFinished(index, event);
+			doHandleTaskStopped(index);
 		})
 		.catch(error => {
 			console.log(error);
@@ -218,16 +230,27 @@ function doStartDownload(index, event) {
 			item[ERROR] = error;
 			item[TASK_STATUS] = STOPPED_STATUS;
 			downloadFailed(index, event);
+			doHandleTaskStopped(index);
 		});
 }
 
 // only download finished, need to merge
 function downloadFinished(index, event) {
-	event.reply(DOWNLOAD_FINISHED, {
-		[INDEX]:index,
-		[TASK_ID]: downloadList[index][TASK_ID]
-	});
 
+	if (downloadList[index][IS_OLD_VIDEO]) {
+		event.reply(MERGE_FINISHED, {
+			[INDEX]: index,
+			[TASK_ID]: downloadList[index][TASK_ID]
+		});
+	} else {
+		var taskWinId = taskWindow.createWindow()
+		console.log("download finished, start merge window and send its id to main window")
+		event.reply(DOWNLOAD_FINISHED, {
+			[INDEX]: index,
+			[TASK_ID]: downloadList[index][TASK_ID],
+			[TASK_WINDOW_ID]: taskWinId
+		});
+	}
 	//   downloadEngine
 	//     .mergeFiles(item[ROOT_PATH], item[NUMBER], item[VIDEO_PAGE])
 	//     .then(() => {
@@ -240,13 +263,20 @@ function downloadFinished(index, event) {
 
 function downloadFailed(index, event) {
 	var item = downloadList[index];
-	event.reply(DOWNLOAD_FAILED, {
-		[INDEX]:index,
-		[TASK_ID]: item[TASK_ID],
-		[ERROR]: item[ERROR]
-	});
 
-	doHandleTaskStopped(index);
+	if (item[IS_OLD_VIDEO]) {
+		event.reply(MERGE_FAILED, {
+			[INDEX]: index,
+			[TASK_ID]: downloadList[index][TASK_ID],
+			[ERROR]: item[ERROR]
+		});
+	} else {
+		event.reply(DOWNLOAD_FAILED, {
+			[INDEX]: index,
+			[TASK_ID]: item[TASK_ID],
+			[ERROR]: item[ERROR]
+		});
+	}
 }
 
 // function mergeFinished(index, event) {
@@ -264,7 +294,7 @@ function downloadFailed(index, event) {
 // }
 
 function doHandleTaskStopped(index) {
-	downloadList.slice(index, index + 1);
+	// downloadList.slice(index, index + 1);
 	isAvailable = true;
 }
 
@@ -280,7 +310,7 @@ function updateProgressCallback(index, type, received_bytes, total_bytes, event)
 		item[AUDIO_RECEIVED] = received_bytes;
 	}
 	event.reply(UPDATE_PROGRESS, {
-		[INDEX]:index,
+		[INDEX]: index,
 		[TASK_ID]: item[TASK_ID],
 		[VIDEO_RECEIVED]: item[VIDEO_RECEIVED],
 		[VIDEO_TOTAL]: item[VIDEO_TOTAL],

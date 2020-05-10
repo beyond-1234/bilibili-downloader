@@ -156,7 +156,7 @@ import {
 	UP_NAME,
 	PAGE_COUNT,
 	DOWNLOAD_FINISHED,
-	TASK_ID
+	TASK_ID, VIDEO_PAGE_NAME
 } from "../../constants";
 
 export default {
@@ -295,6 +295,7 @@ export default {
 								this.videoData.number,
 								acceptCode,
 								item[VIDEO_PAGE],
+								item[VIDEO_PAGE_NAME],
 								this.videoData[IS_OLD_VIDEO]
 							)
 							.then(url => {

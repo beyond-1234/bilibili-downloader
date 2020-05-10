@@ -21,15 +21,17 @@
       <home v-bind:class="{ 'hide': cur != 0}"></home>
 
       <downloadList v-bind:class="{ 'hide': cur != 1}"></downloadList>
+
+      <!-- for merge windows, no html contents -->
+      <merge></merge>
     </div>
-  <task></task>
   </div>
 </template>
 
 <script>
 import home from "./components/home/home.vue"
 import downloadList from "./components/list/downloadList.vue"
-import task from "./components/task/task.vue"
+import merge from "./components/task/merge.vue"
 // import detail from "./components/detail/detail.vue";
 
 export default {
@@ -37,7 +39,7 @@ export default {
   components: {
     home,
     downloadList,
-    task
+    merge
   },
   data() {
     return {
@@ -52,27 +54,27 @@ export default {
   methods: {},
   created:function() {
 
-    if (localStorage.getItem("rootPath")) {
-      this.rootPath = localStorage.getItem("rootPath");
-    } else {
-      this.rootPath = require("electron").remote.app.getPath("downloads");
-    }
+    // if (localStorage.getItem("rootPath")) {
+    //   this.rootPath = localStorage.getItem("rootPath");
+    // } else {
+    //   this.rootPath = require("electron").remote.app.getPath("downloads");
+    // }
 
-    // get lists
-    for (var i = 0, len = localStorage.length; i < len; ++i) {
-      // console.log(localStorage.getItem(localStorage.key(i)));
-      var key = localStorage.key(i);
-      if (key != null && key.match(/\d+/)) {
-        var value = JSON.parse(localStorage.getItem(key));
-        if (value["hasError"]) {
-          this.failedList.push(value);
-        } else if (value["finished"]) {
-          this.finishedList.push(value);
-        } else {
-          this.downloadList.push(value);
-        }
-      }
-    }
+    // // get lists
+    // for (var i = 0, len = localStorage.length; i < len; ++i) {
+    //   // console.log(localStorage.getItem(localStorage.key(i)));
+    //   var key = localStorage.key(i);
+    //   if (key != null && key.match(/\d+/)) {
+    //     var value = JSON.parse(localStorage.getItem(key));
+    //     if (value["hasError"]) {
+    //       this.failedList.push(value);
+    //     } else if (value["finished"]) {
+    //       this.finishedList.push(value);
+    //     } else {
+    //       this.downloadList.push(value);
+    //     }
+    //   }
+    // }
   }
 };
 </script>

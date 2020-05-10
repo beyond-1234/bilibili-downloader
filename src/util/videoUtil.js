@@ -158,10 +158,11 @@ function getOldVideoAccepts(scripts, videoData) {
 }
 
 
-export function getUrl(avNumber, acceptCode, part, isOld) {
+export function getUrl(avNumber, acceptCode, part, partName, isOld) {
 
     var url = {
         [VIDEO_PAGE]: part,
+        [VIDEO_PAGE_NAME]: partName,
         [VIDEO_URL]: "",
         [AUDIO_URL]: ""
     }
