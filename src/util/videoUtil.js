@@ -74,16 +74,16 @@ function getVideoInfo(script, videoData) {
     var init_stat = JSON.parse(init_stat_str)
 
     //add other info
-    videoData[TITLE] = init_stat["videoData"]["title"]
+    videoData[TITLE] = init_stat["videoData"]["title"].replace(/\//, "").replace(/\\/, "")
     videoData[DESC] = init_stat["videoData"]["desc"]
-    videoData[UP_NAME] = init_stat["videoData"]["owner"]["name"]
+    videoData[UP_NAME] = init_stat["videoData"]["owner"]["name"].replace(/\//, "").replace(/\\/, "")
 
     //add parts info
     for (let index = 0; index < init_stat["videoData"]["pages"].length; index++) {
         const key = init_stat["videoData"]["pages"][index];
         videoData[VIDEO_PAGES].push({
             [VIDEO_PAGE]: key["page"],
-            [VIDEO_PAGE_NAME]: key["part"],
+            [VIDEO_PAGE_NAME]: key["part"].replace(/\//, "").replace(/\\/, ""),
             [SELECT]: false
         })
         videoData[PAGE_COUNT] += 1

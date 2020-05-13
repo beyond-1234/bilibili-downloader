@@ -196,6 +196,7 @@ export default {
 		// get search history
 		if (localStorage.getItem(SEARCH_HISTORY)) {
 			this.searchHistory = JSON.parse(localStorage.getItem("searchHistory"))
+			
 			// this.searchHistory = localStorage.getItem(SEARCH_HISTORY).split(",");
 		}
 	},

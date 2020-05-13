@@ -22,6 +22,7 @@ import {
     VIDEO_TOTAL,
     FOLDER
 } from '../constants'
+import {is, fixPathForAsarUnpack} from 'electron-util'
 
 // used to cancel downloading
 var CancelToken = axios.CancelToken;
@@ -69,9 +70,15 @@ export async function startDownload(downloadInfo, callback) {
         // BigInt 和 Number 不是严格相等的，但是宽松相等的。 so use ==
         console.log("check existing files")
 
+        console.log(folder)
+        console.log(videoPath)
         syncDownloadProgress(folder, videoPath, audioPath,
             () =>{
-                fs.mkdirSync(folder)
+                try {
+                    fs.mkdirSync(folder)
+                } catch (error) {
+                    reject(error)
+                }
             },
             (videoOnDisk) => {
                 videoReceived = videoOnDisk
@@ -83,7 +90,7 @@ export async function startDownload(downloadInfo, callback) {
         console.log("download video")
 
         // do not swap order
-        if (videoTotal == 0 || videoReceived < videoTotal) {
+        if (videoReceived < videoTotal || videoTotal == 0) {
             doDownload(videoUrl, avNumber, part, videoPath, videoReceived,
                 async (received_bytes, total_bytes) => {
                     // var progress = Math.round(received_bytes / total_bytes * 100)
@@ -104,9 +111,10 @@ export async function startDownload(downloadInfo, callback) {
         } else {
             videoFinished = true
         }
+
         // old video does not split video and audio
         // do not swap order
-        if (!isOldVideo || audioTotal == 0 || audioReceived < audioTotal) {
+        if (!isOldVideo || audioReceived < audioTotal || audioTotal == 0) {
             console.log("download audio")
             doDownload(audioUrl, avNumber, part, audioPath, audioReceived,
                 async (received_bytes, total_bytes) => {
@@ -143,30 +151,41 @@ export function mergeFiles(videoPath, audioPath, output) {
     console.log("merging file")
     // delete temp file if exists
     if (fs.existsSync(output)) { fs.unlinkSync(output) }
-    // start merge files
+    
+    //stimulate
     return new Promise((resolve, reject) => {
-        ffmpegCommand = ffmpeg.setFfmpegPath(staticFFmpeg.path)
-        ffmpeg()
-            .setFfmpegPath(staticFFmpeg.path)
-            .addInput(videoPath)
-            .addInput(audioPath)
-            .save(output)
-            .on("end", () => {
-                console.log("complete")
-
-                // this.deleteDirectory(rootPath + "/" + avNumber)
-                if (fs.existsSync(videoPath)) { fs.unlink(videoPath) }
-                if (fs.existsSync(audioPath)) { fs.unlink(audioPath) }
-                console.log("temp file deleted")
-                resolve()
-            })
-            .on("error", (error) => {
-                // console.log(error)
-                reject(error)
-            })
+        setTimeout(() => {
+            resolve()
+        }, 5000)
     })
 
+    // start merge files
+    // return new Promise((resolve, reject) => {
+
+        
+    //     console.log(staticFFmpeg.path)
+    //     ffmpegCommand = ffmpeg.setFfmpegPath(staticFFmpeg.path.replace("asar", "asar.unpacked"))
+    //     ffmpeg()
+    //         .addInput(videoPath)
+    //         .addInput(audioPath)
+    //         .save(output)
+    //         .on("end", () => {
+    //             console.log("complete")
+
+    //             // this.deleteDirectory(rootPath + "/" + avNumber)
+    //             if (fs.existsSync(videoPath)) { fs.unlink(videoPath) }
+    //             if (fs.existsSync(audioPath)) { fs.unlink(audioPath) }
+    //             console.log("temp file deleted")
+    //             resolve()
+    //         })
+    //         .on("error", (error) => {
+    //             // console.log(error)
+    //             reject(error)
+    //         })
+    // })
+
 }
+
 // merge audio and video files
 // exports.mergeFiles = (rootPath, avNumber, part) => {
 // export function mergeFiles(rootPath, avNumber, part) {
@@ -200,6 +219,7 @@ export function mergeFiles(videoPath, audioPath, output) {
 // }
 
 // // stop merging file (uesless)
+
 export function stopMergingFiles() {
     console.log("stop merging")
     if (ffmpegCommand != null) {
@@ -228,6 +248,46 @@ function syncDownloadProgress(folder, videoPath, audioPath, folderCallback, vide
         audioCallback(0)
     }
 
+}
+
+export function getTotalSize(url, avNumber, part){
+    var authority = url.substring(8, url.indexOf("/", 8))
+    var referer = "https://www.bilibili.com/video/" + avNumber + "?p=" + part
+    // console.log(authority)
+    // console.log(referer)
+    // console.log(url)
+
+    return new Promise((resolve, reject) => {
+        axios({
+            method: "GET",
+            url: url,
+            // responseType: "stream",
+            headers: {
+                "Host": authority,
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+                "Origin": "https://www.bilibili.com",
+                "Accept": "*/*",
+                "Sec-Fetch-Site": "cross-site",
+                "Sec-Fetch-Mode": "cors",
+                "Referer": referer,
+                "Accept-Encoding": "identity",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKet/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
+                "Range": "0-1"
+            },
+            cancelToken: cancelSource.token
+        }).then(async (response) => {
+            // console.log(JSON.stringify(response["data"]))
+            var total_bytes = response.headers['content-length']
+            console.log("total_byte"+total_bytes)
+            resolve(total_bytes)
+        })
+            .catch((error) => {
+                // console.log(error)
+                reject(error)
+            })
+    })
 }
 
 // download file

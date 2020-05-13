@@ -20,7 +20,11 @@
     <div>
       <home v-bind:class="{ 'hide': cur != 0}"></home>
 
-      <downloadList v-bind:class="{ 'hide': cur != 1}"></downloadList>
+      <downloadList v-bind:class="{ 'hide': cur != 1}" ></downloadList>
+
+      <finishedList v-bind:class="{ 'hide': cur != 2}" ></finishedList>
+      
+      <failedList   v-bind:class="{ 'hide': cur != 3}" ></failedList>
 
       <!-- for merge windows, no html contents -->
       <merge></merge>
@@ -31,6 +35,8 @@
 <script>
 import home from "./components/home/home.vue"
 import downloadList from "./components/list/downloadList.vue"
+import failedList from "./components/list/failedList.vue"
+import finishedList from "./components/list/finishedList.vue"
 import merge from "./components/task/merge.vue"
 // import detail from "./components/detail/detail.vue";
 
@@ -39,6 +45,8 @@ export default {
   components: {
     home,
     downloadList,
+    failedList,
+    finishedList,
     merge
   },
   data() {

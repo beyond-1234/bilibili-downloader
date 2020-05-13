@@ -157,7 +157,7 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 	// var videoPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-v-" + acceptName + ".m4s")
 	// var audioPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-a-" + acceptName + ".m4s")
 	// var output = path.join(folder, element[VIDEO_PAGE] + "-" + element[VIDEO_PAGE_NAME] + "-" + acceptName + ".flv")
-
+	var index = downloadList.length
 	args[VIDEO_DATA][URLS].forEach(element => {
 		var task = {
 			[TASK_ID]: new Date().getTime().toString(),
@@ -184,8 +184,30 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 			[HAS_ERROR]: false,
 			[ERROR]: null
 		};
+
 		downloadList.push(task);
 		event.reply(ADD_TO_DOWNLOAD_LIST, task)
+
+		downloadEngine.getTotalSize(task[VIDEO_URL], task[NUMBER], task[VIDEO_PAGE])
+			.then((total_bytes) => {
+				task[VIDEO_TOTAL] = total_bytes
+			})
+			.catch((error) => {
+				task[HAS_ERROR] = true
+				tasl[ERROR] = error
+				downloadFailed(index, event)
+			})
+
+		downloadEngine.getTotalSize(task[AUDIO_URL], task[NUMBER], task[VIDEO_PAGE])
+		.then((total_bytes) => {
+			task[AUDIO_URL] = total_bytes
+		})
+		.catch((error) => {
+			task[HAS_ERROR] = true
+			tasl[ERROR] = error
+			downloadFailed(index, event)
+		})
+		index++
 	});
 
 	console.log(downloadList.length);
@@ -299,7 +321,7 @@ function doHandleTaskStopped(index) {
 }
 
 function updateProgressCallback(index, type, received_bytes, total_bytes, event) {
-	console.log("update progress");
+	// console.log("update progress");
 
 	var item = downloadList[index];
 	if (type === VIDEO_PROGRESS) {

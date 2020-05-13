@@ -55,3 +55,7 @@ export const MERGE_FINISHED = "mergeFinished"
 export const MERGE_FAILED = "mergeFailed"
 
 export const TASK_WINDOW = "taskWindow"
+
+export const DOWNLOAD_LIST = "downloadList"
+export const FINISHED_LIST = "finishedList"
+export const FAILED_LIST = "failedList"

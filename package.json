@@ -3,20 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "electron .",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "electron:build": "vue-cli-service electron:build",
+    "electron:build": "vue-cli-service electron:build -p asar:false",
     "electron:serve": "vue-cli-service electron:serve",
     "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps"
+    "postuninstall": "electron-builder install-app-deps",
+    "start": "electron ."
   },
   "main": "background.js",
   "dependencies": {
+    "asar": "^3.0.3",
     "axios": "^0.19.2",
     "bulma": "^0.8.0",
     "core-js": "^3.6.4",
+    "electron-util": "^0.14.1",
     "ffmpeg-static-electron": "^2.0.1",
     "fluent-ffmpeg": "git+https://github.com/fluent-ffmpeg/node-fluent-ffmpeg.git",
     "font-awesome": "^4.7.0",
@@ -30,6 +32,7 @@
     "@vue/cli-service": "~4.3.0",
     "babel-eslint": "^10.1.0",
     "electron": "^8.2.0",
+    "electron-builder": "^22.6.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
     "vue-cli-plugin-electron-builder": "~1.4.6",
@@ -49,7 +52,8 @@
       "parser": "babel-eslint"
     },
     "rules": {
-      "no-unused-vars": "off"
+      "no-unused-vars": "off",
+      "vue/no-shared-component-data": "off"
     }
   },
   "browserslist": [
