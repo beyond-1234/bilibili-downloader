@@ -22,7 +22,7 @@ import {
     VIDEO_TOTAL,
     FOLDER
 } from '../constants'
-import {is, fixPathForAsarUnpack} from 'electron-util'
+import { is, fixPathForAsarUnpack } from 'electron-util'
 
 // used to cancel downloading
 var CancelToken = axios.CancelToken;
@@ -35,8 +35,6 @@ var ffmpegCommand
  * info renderer process to update progress
  */
 export async function startDownload(downloadInfo, callback) {
-
-    console.log("start download" + JSON.stringify(downloadInfo))
 
     var rootPath = downloadInfo[ROOT_PATH]
     var acceptName = downloadInfo[ACCEPT_NAME]
@@ -53,8 +51,6 @@ export async function startDownload(downloadInfo, callback) {
     var videoPath = downloadInfo[IS_OLD_VIDEO] ? downloadInfo[OUTPUT] : downloadInfo[VIDEO_PATH]
     var audioPath = downloadInfo[AUDIO_PATH]
     var output = downloadInfo[OUTPUT]
-    var videoFinished = false
-    var audioFinished = false
 
     // if (!isOldVideo) {
     //     videoPath = `${rootPath}/${avNumber}/${part}-v-${acceptName}.m4s`
@@ -69,13 +65,8 @@ export async function startDownload(downloadInfo, callback) {
         // size property in Stats object is bigInt type
         // BigInt 和 Number 不是严格相等的，但是宽松相等的。 so use ==
         console.log("check existing files")
-
-        console.log(folder)
-        console.log(videoPath)
-        // total_byte5356601
-        // total_byte47947312
         syncDownloadProgress(folder, videoPath, audioPath,
-            () =>{
+            () => {
                 try {
                     fs.mkdirSync(folder)
                 } catch (error) {
@@ -89,71 +80,131 @@ export async function startDownload(downloadInfo, callback) {
                 audioReceived = audioOnDisk
             })
 
-        console.log("download video")
-
-        // do not swap order
-        if (videoReceived < videoTotal || videoTotal == 0) {
-            doDownload(videoUrl, avNumber, part, videoPath, videoReceived,
-                async (received_bytes, total_bytes) => {
-                    // var progress = Math.round(received_bytes / total_bytes * 100)
-                    callback(VIDEO_PROGRESS, received_bytes, total_bytes)
-                })
-                .then(() => {
-                    console.log("video end")
-                    videoFinished = true
-                    if (videoFinished && audioFinished) {
-                        console.log("both downloaded")
+        console.log("start download")
+        // get video total
+        downloadVideo(videoUrl, avNumber, part, videoReceived, videoPath, callback)
+            .then(() => {
+                // video downloaded
+                // get audio total
+                downloadAudio(audioUrl, avNumber, part, isOldVideo, audioReceived, audioPath, callback)
+                    .then(() => {
                         resolve()
-                    }
-                })
-                .catch((error) => {
-                    console.log(error)
-                    reject(error)
-                })
-        } else {
-            videoFinished = true
-        }
-
-        // old video does not split video and audio
-        // do not swap order
-        if (!isOldVideo || audioReceived < audioTotal || audioTotal == 0) {
-            console.log("download audio")
-            doDownload(audioUrl, avNumber, part, audioPath, audioReceived,
-                async (received_bytes, total_bytes) => {
-                    // var progress = Math.round(received_bytes / total_bytes * 100)
-                    callback(AUDIO_PROGRESS, received_bytes, total_bytes)
-                })
-                .then(() => {
-                    console.log("audio end")
-                    audioFinished = true
-                    if (videoFinished && audioFinished) {
-                        console.log("both downloaded")
-                        resolve()
-                    }
-                })
-                .catch((error) => {
-                    console.log(error)
-                    reject(error)
-                })
-
-        } else {
-            audioFinished = true
-        }
-        // console.log(videoFinished)
-        // console.log(audioFinished)
-        // if (videoFinished && audioFinished) {
-        //     console.log("both downloaded")
-        //     resolve()
-        // }
+                    })
+                    .catch(error => {
+                        reject(error)
+                    })
+            })
+            .catch(error => {
+                reject(error)
+            })
     })
 
+}
+
+
+
+function downloadAudio(audioUrl, avNumber, part, isOldVideo, audioReceived, audioPath, callback) {
+    return new Promise((resolve, reject) => {
+
+        // audio received   21426404
+        // audio total bytes5356601
+
+
+        getTotalSize(audioUrl, avNumber, part)
+            .then((total_bytes) => {
+                console.log("audio received" + audioReceived)
+                console.log("audio total bytes" + total_bytes)
+                // old video does not split video and audio
+                // do not swap order
+                if (!isOldVideo && audioReceived < total_bytes) {
+
+                    // download audio
+                    doDownloadAudio(audioReceived, audioUrl, avNumber, part, audioPath, callback)
+                        .then(() => {
+                            // download finished
+                            resolve();
+                        })
+                        .catch((error) => {
+                            reject(error);
+                        });
+                } else {
+                    resolve()
+                }
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    })
+}
+
+function doDownloadAudio(audioReceived, audioUrl, avNumber, part, audioPath, callback) {
+    return new Promise((resolve, reject) => {
+
+        console.log("download audio");
+        doDownload(audioUrl, avNumber, part, audioPath, audioReceived,
+            async (received_bytes, total_bytes) => {
+                callback(AUDIO_PROGRESS, received_bytes, total_bytes);
+            }
+        )
+            .then(() => {
+                console.log("audio end");
+                resolve();
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    })
+}
+
+function downloadVideo(videoUrl, avNumber, part, videoReceived, videoPath, callback) {
+    return new Promise((resolve, reject) => {
+        getTotalSize(videoUrl, avNumber, part)
+            .then((total_bytes) => {
+                // do not swap order
+                if (videoReceived < total_bytes) {
+                    // download video
+                    doDownloadVieo(videoReceived, videoUrl, avNumber, part, videoPath, callback)
+                        .then(() => {
+                            resolve()
+                        })
+                        .catch((error) => {
+                            reject(error);
+                        });
+                } else {
+                    resolve()
+                }
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    })
+
+}
+
+function doDownloadVieo(videoReceived, videoUrl, avNumber, part, videoPath, callback) {
+    return new Promise((resolve, reject) => {
+
+        doDownload(videoUrl, avNumber, part, videoPath, videoReceived,
+            async (received_bytes, total_bytes) => {
+                callback(VIDEO_PROGRESS, received_bytes, total_bytes);
+            }
+        )
+            .then(() => {
+                console.log("video end");
+                resolve()
+            })
+            .catch((error) => {
+                reject(error);
+            });
+
+    })
 }
 
 export function mergeFiles(videoPath, audioPath, output) {
     console.log("merging file")
     // delete temp file if exists
     if (fs.existsSync(output)) { fs.unlinkSync(output) }
-    
+
     //stimulate
     return new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -164,7 +215,7 @@ export function mergeFiles(videoPath, audioPath, output) {
     // start merge files
     // return new Promise((resolve, reject) => {
 
-        
+
     //     console.log(staticFFmpeg.path)
     //     ffmpegCommand = ffmpeg.setFfmpegPath(staticFFmpeg.path.replace("asar", "asar.unpacked"))
     //     ffmpeg()
@@ -231,7 +282,7 @@ export function stopMergingFiles() {
 
 function syncDownloadProgress(folder, videoPath, audioPath, folderCallback, videoCallback, audioCallback) {
 
-    if(!fs.existsSync(folder)){
+    if (!fs.existsSync(folder)) {
         folderCallback()
         videoCallback(0)
         audioCallback(0)
@@ -240,19 +291,19 @@ function syncDownloadProgress(folder, videoPath, audioPath, folderCallback, vide
 
     if (fs.existsSync(videoPath)) {
         videoCallback(fs.statSync(videoPath)["size"])
-    }else{
+    } else {
         videoCallback(0)
     }
 
     if (fs.existsSync(audioPath)) {
         audioCallback(fs.statSync(audioPath)["size"])
-    }else {
+    } else {
         audioCallback(0)
     }
 
 }
 
-export function getTotalSize(url, avNumber, part){
+export function getTotalSize(url, avNumber, part) {
     var authority = url.substring(8, url.indexOf("/", 8))
     var referer = "https://www.bilibili.com/video/" + avNumber + "?p=" + part
     // console.log(authority)
@@ -280,13 +331,10 @@ export function getTotalSize(url, avNumber, part){
             },
             cancelToken: cancelSource.token
         }).then(async (response) => {
-            // console.log(JSON.stringify(response["data"]))
             var total_bytes = response.headers['content-length']
-            console.log("total_byte"+total_bytes)
             resolve(total_bytes)
         })
             .catch((error) => {
-                // console.log(error)
                 reject(error)
             })
     })
@@ -323,7 +371,6 @@ function doDownload(url, avNumber, part, path, received, callback) {
             cancelToken: cancelSource.token
         }).then(async (response) => {
             console.log("response")
-            // console.log(JSON.stringify(response["data"]))
             var total_bytes = response.headers['content-length']
             var received_bytes = received
             const writer = fs.createWriteStream(path, { flags: 'a' })
@@ -334,12 +381,10 @@ function doDownload(url, avNumber, part, path, received, callback) {
             })
             response.data.pipe(writer)
             response.data.on('end', () => {
-                console.log('end')
                 resolve()
             })
         })
             .catch((error) => {
-                // console.log(error)
                 reject(error)
             })
     })
