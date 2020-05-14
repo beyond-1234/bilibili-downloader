@@ -113,6 +113,8 @@ function downloadAudio(audioUrl, avNumber, part, isOldVideo, audioReceived, audi
                             reject(error);
                         });
                 } else {
+                    // if no need to download, update task progress
+                    callback(AUDIO_PROGRESS, audioReceived, total_bytes);
                     resolve()
                 }
             })
@@ -156,6 +158,8 @@ function downloadVideo(videoUrl, avNumber, part, videoReceived, videoPath, callb
                             reject(error);
                         });
                 } else {
+                    // if no need to download, update task progress
+                    callback(VIDEO_PROGRESS, videoReceived, total_bytes);
                     resolve()
                 }
             })

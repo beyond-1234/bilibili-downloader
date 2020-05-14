@@ -154,10 +154,7 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 	var startIndex = downloadList.length
 
 	var folder = path.join(args[ROOT_PATH], args[VIDEO_DATA][TITLE] + args[VIDEO_DATA][NUMBER])
-	// var videoPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-v-" + acceptName + ".m4s")
-	// var audioPath = path.join(folder, element[VIDEO_PAGE_NAME] + "-a-" + acceptName + ".m4s")
-	// var output = path.join(folder, element[VIDEO_PAGE] + "-" + element[VIDEO_PAGE_NAME] + "-" + acceptName + ".flv")
-	var index = downloadList.length
+	
 	args[VIDEO_DATA][URLS].forEach(element => {
 		var task = {
 			[TASK_ID]: new Date().getTime().toString(),
@@ -179,22 +176,18 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 			[VIDEO_PATH]: path.join(folder, element[VIDEO_PAGE_NAME] + "-v-" + acceptName + ".m4s"),
 			[AUDIO_PATH]: path.join(folder, element[VIDEO_PAGE_NAME] + "-a-" + acceptName + ".m4s"),
 			[OUTPUT]: path.join(folder, element[VIDEO_PAGE] + "-" + element[VIDEO_PAGE_NAME] + "-" + acceptName + ".flv"),
-			// [VIDEO_FINISHED]: args[VIDEO_DATA][VIDEO_FINISHED],
-			// [AUDIO_FINISHED]: args[VIDEO_DATA][AUDIO_FINISHED],
 			[HAS_ERROR]: false,
 			[ERROR]: null
 		};
 
 		downloadList.push(task);
 		event.reply(ADD_TO_DOWNLOAD_LIST, task)
-
-		
-		index++
 	});
 
 	tryStartDownload(startIndex, event);
 });
 
+// try to download
 function tryStartDownload(index, event) {
 
 	var item = downloadList[index];
