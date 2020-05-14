@@ -22,7 +22,6 @@ import {
     VIDEO_TOTAL,
     FOLDER
 } from '../constants'
-import { is, fixPathForAsarUnpack } from 'electron-util'
 
 // used to cancel downloading
 var CancelToken = axios.CancelToken;
@@ -51,13 +50,6 @@ export async function startDownload(downloadInfo, callback) {
     var videoPath = downloadInfo[IS_OLD_VIDEO] ? downloadInfo[OUTPUT] : downloadInfo[VIDEO_PATH]
     var audioPath = downloadInfo[AUDIO_PATH]
     var output = downloadInfo[OUTPUT]
-
-    // if (!isOldVideo) {
-    //     videoPath = `${rootPath}/${avNumber}/${part}-v-${acceptName}.m4s`
-    //     audioPath = `${rootPath}/${avNumber}/${part}-a-${acceptName}.m4s`
-    // } else {
-    //     videoPath = `${rootPath}/${avNumber}/${part}-${acceptName}.flv`
-    // }
 
     return new Promise((resolve, reject) => {
 
@@ -101,21 +93,14 @@ export async function startDownload(downloadInfo, callback) {
 
 }
 
-
-
 function downloadAudio(audioUrl, avNumber, part, isOldVideo, audioReceived, audioPath, callback) {
     return new Promise((resolve, reject) => {
-
-        // audio received   21426404
-        // audio total bytes5356601
-
 
         getTotalSize(audioUrl, avNumber, part)
             .then((total_bytes) => {
                 console.log("audio received" + audioReceived)
                 console.log("audio total bytes" + total_bytes)
                 // old video does not split video and audio
-                // do not swap order
                 if (!isOldVideo && audioReceived < total_bytes) {
 
                     // download audio

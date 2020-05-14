@@ -48,7 +48,8 @@ import {
 	AUDIO_FINISHED,
 	START_TASK_WINDOW,
 	WAITING_STATUS,
-	FOLDER
+	FOLDER,
+	CHANGE_TAB
 } from "./constants";
 import * as downloadEngine from "./util/downloadEngine";
 
@@ -317,3 +318,9 @@ function updateProgressCallback(index, type, received_bytes, total_bytes, event)
 		[AUDIO_TOTAL]: item[AUDIO_TOTAL]
 	});
 }
+
+// when download is triggered, ipcRnederer send tab index to main process to change tab
+// ipcMain send index back to renderer process, but only received in App.vue
+ipcMain.on(CHANGE_TAB, (event, args) => {
+	event.reply(CHANGE_TAB, args)
+})

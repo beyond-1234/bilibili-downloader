@@ -6,7 +6,7 @@
 			<div class="modal-card">
 				<header class="modal-card-head">
 					<p class="modal-card-title">Video Info</p>
-					<button class="modal-close-btn delete" aria-label="close" @click="cancel"></button>
+					<button class="modal-close-btn delete" aria-label="close" @click="hideDetailPanel"></button>
 				</header>
 				<section class="modal-card-body">
 					<div class="field">
@@ -70,7 +70,7 @@
 						@click="startDownload"
 						:disabled="downloadButtonDisabled"
 					>Go</button>
-					<button class="modal-close-btn button" @click="cancel">Cancel</button>
+					<button class="modal-close-btn button" @click="hideDetailPanel">cancel</button>
 				</footer>
 			</div>
 		</div>
@@ -156,7 +156,7 @@ import {
 	UP_NAME,
 	PAGE_COUNT,
 	DOWNLOAD_FINISHED,
-	TASK_ID, VIDEO_PAGE_NAME
+	TASK_ID, VIDEO_PAGE_NAME, CHANGE_TAB
 } from "../../constants";
 
 export default {
@@ -253,6 +253,8 @@ export default {
 			this.doGetVideoData()
 				.then(() => {
 					this.doSendToTaskWin();
+					this.hideDetailPanel()
+					this.changeTab(1)
 				})
 				.catch(() => {
 					return;
@@ -260,13 +262,10 @@ export default {
 
 			this.downloadButtonDisabled = false;
 		},
-		cancel() {
+		hideDetailPanel() {
 			this.showDetail = false;
 			// this.videoData = getEmptyVideoData()
 		},
-		// argument urls is for a weird bug
-		// for the first time to start download, you can not tansfer urls inside videoData
-		// i really don't know why.....
 		doSendToTaskWin() {
 			
 			// ipc send will pass args by value not by ref
@@ -316,6 +315,10 @@ export default {
 			// urls.forEach(item => {
 			// 	this.videoData[URLS].push(item);
 			// })
+		},
+		// can use store.js in App.js, only though ipc to notify App.js to change tab
+		changeTab(value){
+			ipcRenderer.send(CHANGE_TAB, {cur:value})
 		}
 	}
 };

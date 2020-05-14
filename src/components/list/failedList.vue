@@ -20,17 +20,13 @@
                   <span class="title is-6">Part:{{item.pageName}}</span>
                   <span :onclick="downloadStartItem(item.id)" class="icon">
                     <a>
-                      <i class="fa fa-play"></i>
+                      <font-awesome-icon icon="play" />
                     </a>
                   </span>
-                  <span :onclick="downloadPauseItem(item.id)" class="icon">
-                    <a>
-                      <i class="fa fa-pause"></i>
-                    </a>
-                  </span>
+                  
                   <span :onclick="downloadDeleteItem(item.id)" class="icon">
                     <a>
-                      <i class="fa fa-ban"></i>
+                      <font-awesome-icon icon="ban" />
                     </a>
                   </span>
                   <p></p>
@@ -126,66 +122,8 @@ export default {
           });
     }
   },
-  mounted() {
-    // when adding a task, main process would create download object.
-    // add the object in the downloadList component
-    // ipcRenderer.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
-    //   console.log("get downloading item");
-    //   console.log(args);
-
-    //   // this.sharedList.list.push(args);
-    //   this.addItem(args)
-    // });
-    // ipcRenderer.on(DOWNLOAD_FINISHED, (event, args) => {
-    //   console.log(this.sharedList);
-    //   console.log("download finished received");
-
-    //   console.log(args[TASK_WINDOW_ID]);
-
-    //   setTimeout(() => {
-    //     ipcRenderer.sendTo(args[TASK_WINDOW_ID], START_MERGE, {
-    //       [INDEX]: args[INDEX],
-    //       [TASK_ID]: args[TASK_ID],
-    //       [VIDEO_PATH]: this.getItem(args[INDEX])[VIDEO_PATH],
-    //       [AUDIO_PATH]: this.getItem(args[INDEX])[AUDIO_PATH],
-    //       [OUTPUT]: this.getItem(args[INDEX])[OUTPUT]
-    //     });
-    //   }, 2000);
-    // });
-    // ipcRenderer.on(DOWNLOAD_FAILED, (event, args) => {
-    //   console.log(this.sharedList);
-    // });
-    //     ipcRenderer.on(UPDATE_PROGRESS, (event, args) => {
-    //       // console.log(this.list[args[INDEX]])
-
-    //       // try using index first
-    //       // if not working well, try using taskId with binary search
-    //       this.getItem(args[INDEX])[VIDEO_RECEIVED] = args[VIDEO_RECEIVED];
-    //       this.getItem(args[INDEX])[VIDEO_TOTAL] = args[VIDEO_TOTAL];
-    //       this.getItem(args[INDEX])[AUDIO_RECEIVED] = args[AUDIO_RECEIVED];
-    //       this.getItem(args[INDEX])[AUDIO_TOTAL] = args[AUDIO_TOTAL];
-    // // Math.round(item.videoReceived / item.videoTotal * 100)
-    //       console.log(Math.round(args[VIDEO_RECEIVED] / args[VIDEO_TOTAL] * 100));
-    //     });
-    // ipcRenderer.on(MERGE_FINISHED, (event, args) => {
-    //   this.getItem(args[INDEX])[TASK_STATUS] = STOPPED_STATUS;
-    //   console.log("merge finished")
-    // });
-    // ipcRenderer.on(MERGE_FAILED, (event, args) => {
-    //   this.getItem(args[INDEX])[HAS_ERROR] = true;
-    //   this.getItem(args[INDEX])[ERROR] = args[ERROR];
-    //   this.getItem(args[INDEX])[TASK_STATUS] = STOPPED_STATUS;
-      
-    // });
-    // ipcRenderer.on(START_TASK_WINDOW, (event, args) => {
-    //   this.taskWinList.push({
-    //     [TASK_ID]:
-    //   })
-    // })
-  },
   methods: {
     downloadStartItem(id) {},
-    downloadPauseItem(id) {},
     downloadDeleteItem(id) {},
     getItem (index){
       return store.get(index)
