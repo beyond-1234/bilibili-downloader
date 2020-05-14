@@ -20,17 +20,18 @@
                   <span class="title is-6">Part:{{item.pageName}}</span>
                   <span :onclick="downloadStartItem(item.id)" class="icon">
                     <a>
-                      <i class="fa fa-play"></i>
+                      <font-awesome-icon icon="play" />
                     </a>
                   </span>
                   <span :onclick="downloadPauseItem(item.id)" class="icon">
                     <a>
-                      <i class="fa fa-pause"></i>
+                      <font-awesome-icon icon="pause" />
+                      <i class="fa fa-pause" aria-hidden="true"></i>
                     </a>
                   </span>
                   <span :onclick="downloadDeleteItem(item.id)" class="icon">
                     <a>
-                      <i class="fa fa-ban"></i>
+                     <font-awesome-icon icon="ban" />
                     </a>
                   </span>
                   <p></p>
@@ -106,6 +107,7 @@ import {
   FAILED_LIST
 } from "../../constants";
 import store from "../../util/store";
+
 
 export default {
   name: "downloadList",

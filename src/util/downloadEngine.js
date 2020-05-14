@@ -72,6 +72,8 @@ export async function startDownload(downloadInfo, callback) {
 
         console.log(folder)
         console.log(videoPath)
+        // total_byte5356601
+        // total_byte47947312
         syncDownloadProgress(folder, videoPath, audioPath,
             () =>{
                 try {
