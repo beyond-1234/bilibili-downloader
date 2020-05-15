@@ -123,8 +123,17 @@ export default {
     }
   },
   methods: {
-    downloadStartItem(id) {},
-    downloadDeleteItem(id) {},
+    downloadStartItem(id) {
+      ipcRenderer.send(RESUME_TASK, {
+        [TASK_ID]: id
+      });
+    },
+    downloadDeleteItem(id) {
+      // store.getByID(id)[TASK_STATUS] = DELETED_STATUS
+      ipcRenderer.send(DELETE_TASK, {
+        [TASK_ID]: id
+      });
+    },
     getItem (index){
       return store.get(index)
     },

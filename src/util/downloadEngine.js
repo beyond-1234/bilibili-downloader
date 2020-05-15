@@ -98,8 +98,6 @@ function downloadAudio(audioUrl, avNumber, part, isOldVideo, audioReceived, audi
 
         getTotalSize(audioUrl, avNumber, part)
             .then((total_bytes) => {
-                console.log("audio received" + audioReceived)
-                console.log("audio total bytes" + total_bytes)
                 // old video does not split video and audio
                 if (!isOldVideo && audioReceived < total_bytes) {
 

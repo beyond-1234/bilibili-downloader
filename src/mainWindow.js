@@ -1,6 +1,6 @@
 'use strict'
 
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app, ipcMain } from 'electron'
 import {
 	createProtocol,
 	/* installVueDevtools */
@@ -36,7 +36,7 @@ export function createWindow() {
 	}
 
 	win.on('closed', () => {
-		win = null
+		
 	})
 }
 

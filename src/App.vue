@@ -40,7 +40,7 @@ import finishedList from "./components/list/finishedList.vue"
 import merge from "./components/task/merge.vue"
 import store from "./util/store"
 import { ipcRenderer } from 'electron'
-import { CHANGE_TAB } from './constants'
+import { CHANGE_TAB, WINDOW_CLOSING } from './constants'
 // import detail from "./components/detail/detail.vue";
 
 export default {
@@ -56,6 +56,19 @@ export default {
     ipcRenderer.on(CHANGE_TAB, (event, args) => {
       this.currentTab = args.cur
     })
+    ipcRenderer.on(WINDOW_CLOSING, (event, args) => {
+      require("electron")
+        .remote.dialog.showMessageBoxSync({
+          message:"tasks ongoing, sure to quit?"
+        })
+        .then(result => {
+            console.log(result)
+          }
+        )
+        .catch(err => {
+          console.log(err);
+        });
+    })
   },
   data() {
     return {
@@ -66,6 +79,13 @@ export default {
       finishedList:[],
       failedList:[]
     };
+  },
+  beforeDestroy(){
+    console.log("before destroy")
+    setTimeout(() => {
+    ipcRenderer.send(WINDOW_CLOSING, false)
+      
+    }, 3000);
   }
 };
 </script>

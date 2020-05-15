@@ -31,20 +31,20 @@
                   </span>
                   <span :onclick="downloadDeleteItem(item.id)" class="icon">
                     <a>
-                     <font-awesome-icon icon="ban" />
+                      <font-awesome-icon icon="ban" />
                     </a>
                   </span>
                   <p></p>
-                  <span>video progress:{{Math.round(item.videoReceived / item.videoTotal * 100)}}</span>
+                  <span>video progress:{{item.videoTotal == 0 ? 0 : Math.round(item.videoReceived / item.videoTotal * 100)}}</span>
                   <progress
                     class="progress is-primary is-small small-bottom-margin"
-                    :value="Math.round(item.videoReceived / item.videoTotal * 100)"
+                    :value="item.videoTotal == 0 ? 0 : Math.round(item.videoReceived / item.videoTotal * 100)"
                     max="100"
                   ></progress>
-                  <span>audio progress:{{Math.round(item.audioReceived / item.audioTotal * 100)}}</span>
+                  <span>audio progress:{{item.videoTotal == 0 ? 0 : Math.round(item.audioReceived / item.audioTotal * 100)}}</span>
                   <progress
                     class="progress is-primary is-small small-bottom-margin"
-                    :value="Math.round(item.audioReceived / item.audioTotal * 100)"
+                    :value="item.videoTotal == 0 ? 0 : Math.round(item.audioReceived / item.audioTotal * 100)"
                     max="100"
                   ></progress>
                   <label
@@ -104,27 +104,30 @@ import {
   OUTPUT,
   DOWNLOAD_LIST,
   FINISHED_LIST,
-  FAILED_LIST
+  FAILED_LIST,
+  DELETED_STATUS,
+  PAUSED_STATUS,
+  RESUME_TASK,
+  PAUSE_TASK,
+  DELETE_TASK
 } from "../../constants";
 import store from "../../util/store";
-
 
 export default {
   name: "downloadList",
   props: ["listType"],
   data() {
     // do not use data function, because i want to share the whole list in finished and failed list
-    return { 
-      sharedList: store.state.list, 
-      taskWinList: [] 
+    return {
+      sharedList: store.state.list,
+      taskWinList: []
     };
   },
   computed: {
     filteredList: function() {
-      
-       return this.sharedList.filter(item => {
-            return item[TASK_STATUS] != STOPPED_STATUS;
-          });
+      return this.sharedList.filter(item => {
+        return item[TASK_STATUS] != STOPPED_STATUS;
+      });
     }
   },
   mounted() {
@@ -132,10 +135,10 @@ export default {
     // add the object in the downloadList component
     ipcRenderer.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
       console.log("get downloading item");
-      console.log(args);
+      // console.log(args);
 
       // this.sharedList.list.push(args);
-      this.addItem(args)
+      this.addItem(args);
     });
     ipcRenderer.on(DOWNLOAD_FINISHED, (event, args) => {
       console.log(this.sharedList);
@@ -165,34 +168,59 @@ export default {
       this.getItem(args[INDEX])[VIDEO_TOTAL] = args[VIDEO_TOTAL];
       this.getItem(args[INDEX])[AUDIO_RECEIVED] = args[AUDIO_RECEIVED];
       this.getItem(args[INDEX])[AUDIO_TOTAL] = args[AUDIO_TOTAL];
-// Math.round(item.videoReceived / item.videoTotal * 100)
-      console.log(Math.round(args[VIDEO_RECEIVED] / args[VIDEO_TOTAL] * 100));
+      // Math.round(item.videoReceived / item.videoTotal * 100)
+      console.log(Math.round((args[VIDEO_RECEIVED] / args[VIDEO_TOTAL]) * 100));
     });
     ipcRenderer.on(MERGE_FINISHED, (event, args) => {
       this.getItem(args[INDEX])[TASK_STATUS] = STOPPED_STATUS;
-      console.log("merge finished")
+      console.log("merge finished");
     });
     ipcRenderer.on(MERGE_FAILED, (event, args) => {
       this.getItem(args[INDEX])[HAS_ERROR] = true;
       this.getItem(args[INDEX])[ERROR] = args[ERROR];
       this.getItem(args[INDEX])[TASK_STATUS] = STOPPED_STATUS;
-      
     });
     // ipcRenderer.on(START_TASK_WINDOW, (event, args) => {
     //   this.taskWinList.push({
     //     [TASK_ID]:
     //   })
     // })
+    ipcRenderer.on(RESUME_TASK, (event, args) => {
+      this.setItemStatus(args[TASK_ID], args[TASK_STATUS]);
+    });
+    ipcRenderer.on(PAUSE_TASK, (event, args) => {
+      this.setItemStatus(args[TASK_ID], args[TASK_STATUS]);
+    });
+    ipcRenderer.on(DELETE_TASK, (event, args) => {
+      this.setItemStatus(args[TASK_ID], args[TASK_STATUS]);
+    });
   },
   methods: {
-    downloadStartItem(id) {},
-    downloadPauseItem(id) {},
-    downloadDeleteItem(id) {},
-    getItem (index){
-      return store.get(index)
+    downloadStartItem(id) {
+      ipcRenderer.send(RESUME_TASK, {
+        [TASK_ID]: id
+      });
     },
-    addItem(item){
-      store.add(item)
+    downloadPauseItem(id) {
+      // store.getByID(id)[TASK_STATUS] = PAUSED_STATUS
+      ipcRenderer.send(PAUSE_TASK, {
+        [TASK_ID]: id
+      });
+    },
+    downloadDeleteItem(id) {
+      // store.getByID(id)[TASK_STATUS] = DELETED_STATUS
+      ipcRenderer.send(DELETE_TASK, {
+        [TASK_ID]: id
+      });
+    },
+    getItem(index) {
+      return store.get(index);
+    },
+    addItem(item) {
+      store.add(item);
+    },
+    setItemStatus(index, status) {
+      store.setStatusByIndex(index, status);
     }
   }
 };

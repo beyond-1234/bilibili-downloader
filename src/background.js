@@ -49,7 +49,8 @@ import {
 	START_TASK_WINDOW,
 	WAITING_STATUS,
 	FOLDER,
-	CHANGE_TAB
+	CHANGE_TAB,
+	RESUME_TASK, PAUSE_TASK, DELETE_TASK, DELETED_STATUS, WINDOW_CLOSING
 } from "./constants";
 import * as downloadEngine from "./util/downloadEngine";
 
@@ -105,8 +106,6 @@ app.on('ready', async () => {
 
 	}
 
-
-
 	global.sharedObject = {
 		[MAIN_WINDOW_ID]: -1
 	}
@@ -131,21 +130,64 @@ if (isDevelopment) {
 		})
 	}
 }
-// background为中心，home组件的信息先传到background，由background管理，再发到downloadList组件
-// background向downloadList组件更新下载进度
-// decrepted 应用刚开始跑的时候background从localStorage里拿到缓存的list，再发给downloadList组件
-// 每个任务都要有下载中\暂停\stopped种状态，当一个任务完成或者失败，放到mainWindow相应的组件中的list里，需要重新下载的时候在发消息给background
-// 我知道ipc要走主进程，我知道效率低，但我不打算改了。就这样
 
-// var mainWinId = require("electron").remote.getGlobal(SHARED_OBJECT)[
-// 	MAIN_WINDOW_ID
-// ];
+ipcMain.on(WINDOW_CLOSING, (event, args) =>{
+	if(args) app.quit()
+	
+	if(!isAvailable){
+		app.quit()
+	}else{
+		event.reply(WINDOW_CLOSING, 0)
+	}
+})
+
+ipcMain.on(RESUME_TASK, (event, args) => {
+	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
+	if (item == null || item == undefined) return
+	var index = downloadList.indexOf(item)
+	item[TASK_STATUS] = isAvailable ? DOWNLOADING_STATUS : WAITING_STATUS
+
+	if (isAvailable) tryStartDownload(index, event)
+
+	event.reply(PAUSE_TASK, {
+		[INDEX]: index,
+		[TASK_STATUS]: item[TASK_STATUS]
+	})
+})
+ipcMain.on(PAUSE_TASK, (event, args) => {
+	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
+	if (item == null || item == undefined) return
+	if (item[TASK_STATUS] == DOWNLOADING_STATUS) {
+		downloadEngine.cancel()
+		doHandleTaskStopped(downloadList.indexOf(item), event)
+	}
+
+	item[TASK_STATUS] = item[TASK_STATUS] == WAITING_STATUS ? PAUSED_STATUS : item[TASK_STATUS]
+
+	event.reply(PAUSE_TASK, {
+		[INDEX]: index,
+		[TASK_STATUS]: item[TASK_STATUS]
+	})
+})
+ipcMain.on(DELETE_TASK, (event, args) => {
+	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
+	if (item == null || item == undefined) return
+	if (item[TASK_STATUS] == DOWNLOADING_STATUS) {
+		downloadEngine.cancel()
+		doHandleTaskStopped(downloadList.indexOf(item), event)
+	}
+	item[TASK_STATUS] = DELETED_STATUS
+
+	event.reply(DELETE_TASK, {
+		[INDEX]: index,
+		[TASK_STATUS]: item[TASK_STATUS]
+	})
+})
 
 // receive new tasks, add to list both in main process and downloadlist component
 // try to start it
 ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 	console.log("add to download list");
-
 	var acceptName = null
 	args[VIDEO_DATA][ACCEPTS].forEach(item => {
 		if (item[SELECT] > 0) acceptName = item[ACCEPT_NAME];
@@ -154,7 +196,7 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 	var startIndex = downloadList.length
 
 	var folder = path.join(args[ROOT_PATH], args[VIDEO_DATA][TITLE] + args[VIDEO_DATA][NUMBER])
-	
+
 	args[VIDEO_DATA][URLS].forEach(element => {
 		var task = {
 			[TASK_ID]: new Date().getTime().toString(),
@@ -179,7 +221,6 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 			[HAS_ERROR]: false,
 			[ERROR]: null
 		};
-
 		downloadList.push(task);
 		event.reply(ADD_TO_DOWNLOAD_LIST, task)
 	});
@@ -190,13 +231,14 @@ ipcMain.on(ADD_TO_DOWNLOAD_LIST, (event, args) => {
 // try to download
 function tryStartDownload(index, event) {
 
+	if (index < 0 || index >= downloadList.length) return
+
 	var item = downloadList[index];
 
-	if (item === undefined || item === null) {
-		return;
+	if (!isAvailable) {
+		item[TASK_STATUS] = WAITING_STATUS
+		return
 	}
-
-	if (!isAvailable) return;
 
 	doStartDownload(index, event);
 }
@@ -217,14 +259,14 @@ function doStartDownload(index, event) {
 			// item[TASK_STATUS] = PAUSED_STATUS;
 			console.log("background.js download finished")
 			downloadFinished(index, event);
-			doHandleTaskStopped(index);
+			doHandleTaskStopped(index, event);
 		})
 		.catch(error => {
 			item[HAS_ERROR] = true;
 			item[ERROR] = error;
 			item[TASK_STATUS] = STOPPED_STATUS;
 			downloadFailed(index, event);
-			doHandleTaskStopped(index);
+			doHandleTaskStopped(index, event);
 		});
 }
 
@@ -287,9 +329,12 @@ function downloadFailed(index, event) {
 //   doHandleTaskStopped(index);
 // }
 
-function doHandleTaskStopped(index) {
+function doHandleTaskStopped(index, event) {
 	// downloadList.slice(index, index + 1);
 	isAvailable = true;
+	var nextIndex = downloadList.findIndex(item => { return item[TASK_STATUS] == WAITING_STATUS })
+	console.log("one finsihed, start next " + nextIndex)
+	tryStartDownload(nextIndex, event)
 }
 
 function updateProgressCallback(index, type, received_bytes, total_bytes, event) {
