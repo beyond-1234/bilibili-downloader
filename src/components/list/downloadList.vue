@@ -120,7 +120,7 @@ export default {
     // do not use data function, because i want to share the whole list in finished and failed list
     return {
       sharedList: store.state.list,
-      taskWinList: []
+      mergeWinList: []
     };
   },
   computed: {
@@ -141,11 +141,17 @@ export default {
       this.addItem(args);
     });
     ipcRenderer.on(DOWNLOAD_FINISHED, (event, args) => {
-      console.log(this.sharedList);
       console.log("download finished received");
 
-      console.log(args[TASK_WINDOW_ID]);
+      console.log("download finish" + args[TASK_WINDOW_ID]);
 
+      this.mergeWinList.push({
+        [TASK_ID]: args[TASK_ID],
+        [INDEX]: args[INDEX],
+        [TASK_WINDOW_ID]: args[TASK_WINDOW_ID]
+      });
+
+      // wait two seconds or it will be somehow too fast to get the arguments and encounter bug
       setTimeout(() => {
         ipcRenderer.sendTo(args[TASK_WINDOW_ID], START_MERGE, {
           [INDEX]: args[INDEX],

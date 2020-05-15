@@ -133,7 +133,7 @@ if (isDevelopment) {
 
 ipcMain.on(WINDOW_CLOSING, (event, args) =>{
 	if(args) app.quit()
-	
+
 	if(!isAvailable){
 		app.quit()
 	}else{
@@ -154,6 +154,7 @@ ipcMain.on(RESUME_TASK, (event, args) => {
 		[TASK_STATUS]: item[TASK_STATUS]
 	})
 })
+
 ipcMain.on(PAUSE_TASK, (event, args) => {
 	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
 	if (item == null || item == undefined) return
@@ -169,6 +170,7 @@ ipcMain.on(PAUSE_TASK, (event, args) => {
 		[TASK_STATUS]: item[TASK_STATUS]
 	})
 })
+
 ipcMain.on(DELETE_TASK, (event, args) => {
 	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
 	if (item == null || item == undefined) return
