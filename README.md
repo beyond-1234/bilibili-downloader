@@ -26,5 +26,4 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 ### known issues
 
 - can not download old videos
-- sync downloaded progress from disk has problem, should check if the file has finished downloading. this can be down by adding flag in download item.
-- not actually using download status
+- waiting to be multi-threaded
