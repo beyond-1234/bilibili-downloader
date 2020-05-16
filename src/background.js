@@ -50,7 +50,7 @@ import {
 	WAITING_STATUS,
 	FOLDER,
 	CHANGE_TAB,
-	RESUME_TASK, PAUSE_TASK, DELETE_TASK, DELETED_STATUS, WINDOW_CLOSING
+	RESUME_TASK, PAUSE_TASK, DELETE_TASK, DELETED_STATUS, WINDOW_CLOSING, PAUSE_TASK_FOR_CLOSING
 } from "./constants";
 import * as downloadEngine from "./util/downloadEngine";
 
@@ -68,13 +68,13 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: true, standard: true } }])
 
 // Quit when all windows are closed.
-app.on('window-all-closed', () => {
-	// On macOS it is common for applications and their menu bar
-	// to stay active until the user quits explicitly with Cmd + Q
-	if (process.platform !== 'darwin') {
-		app.quit()
-	}
-})
+// app.on('window-all-closed', () => {
+// 	// On macOS it is common for applications and their menu bar
+// 	// to stay active until the user quits explicitly with Cmd + Q
+// 	if (process.platform !== 'darwin') {
+// 		app.quit()
+// 	}
+// })
 
 app.on('activate', () => {
 	// On macOS it's common to re-create a window in the app when the
@@ -131,15 +131,6 @@ if (isDevelopment) {
 	}
 }
 
-ipcMain.on(WINDOW_CLOSING, (event, args) =>{
-	if(args) app.quit()
-
-	if(!isAvailable){
-		app.quit()
-	}else{
-		event.reply(WINDOW_CLOSING, 0)
-	}
-})
 
 ipcMain.on(RESUME_TASK, (event, args) => {
 	var item = downloadList.find(item => { return item[TASK_ID] == args[TASK_ID] })
@@ -169,6 +160,28 @@ ipcMain.on(PAUSE_TASK, (event, args) => {
 		[INDEX]: index,
 		[TASK_STATUS]: item[TASK_STATUS]
 	})
+})
+
+ipcMain.on(PAUSE_TASK_FOR_CLOSING, (event, args) =>{
+	var tempList = downloadList.filter(item => {return item[TASK_STATUS] == DOWNLOADING_STATUS})
+	if (tempList == null || tempList == undefined || tempList.length == 0) {
+		event.reply(PAUSE_TASK_FOR_CLOSING, {
+			[INDEX]: index,
+			[TASK_ID]:null
+		})
+	}else{
+		
+		var ids = []
+		tempList.forEach(item => {
+			downloadEngine.cancel()
+			ids.push(item[TASK_ID])
+		})
+
+		event.reply(PAUSE_TASK_FOR_CLOSING, {
+			[INDEX]: index,
+			[TASK_ID]: ids
+		})
+	}
 })
 
 ipcMain.on(DELETE_TASK, (event, args) => {

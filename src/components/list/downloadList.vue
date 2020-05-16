@@ -49,7 +49,7 @@
                   ></progress>
                   <label
                     class="label"
-                    :class="{hide:item.videoReceived < item.videoTotal && item.audioReceived < item.audioTotal}"
+                    :class="{hide: (item.videoTotal == 0 || item.audioTotal == 0) || item.videoReceived < item.videoTotal || item.audioReceived < item.audioTotal}"
                   >merging videio and audio, this can really take a while</label>
                 </div>
               </div>
@@ -109,7 +109,12 @@ import {
   PAUSED_STATUS,
   RESUME_TASK,
   PAUSE_TASK,
-  DELETE_TASK
+  DELETE_TASK,
+  DOWNLOADING_STATUS,
+  READY_FOR_CLOSING,
+  PAUSE_TASK_FOR_CLOSING,
+  WAITING_STATUS,
+  WINDOW_CLOSING
 } from "../../constants";
 import store from "../../util/store";
 
@@ -196,9 +201,49 @@ export default {
     });
     ipcRenderer.on(PAUSE_TASK, (event, args) => {
       this.setItemStatus(args[TASK_ID], args[TASK_STATUS]);
+
+      // used for window closing
+      ipcRenderer.send(READY_FOR_CLOSING, 0);
     });
     ipcRenderer.on(DELETE_TASK, (event, args) => {
       this.setItemStatus(args[TASK_ID], args[TASK_STATUS]);
+    });
+
+    ipcRenderer.on(WINDOW_CLOSING, (event, args) => {
+      console.log("window closing")
+      var item = this.sharedList.find(item => {return item[TASK_STATUS] == DOWNLOADING_STATUS})
+
+      if(item == null || item == undefined){
+        ipcRenderer.send(READY_FOR_CLOSING, 0)
+        return
+      }
+
+      require("electron")
+        .remote.dialog.showCertificateTrustDialog({
+          message: "tasks ongoing, sure to quit?"
+        })
+        .then(result => {
+          console.log(result);
+          ipcRenderer.send(PAUSE_TASK_FOR_CLOSING, 0);
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    });
+
+    ipcRenderer.on(PAUSE_TASK_FOR_CLOSING, (event, args) => {
+      this.sharedList.forEach(element => {
+        switch (element[TASK_STATUS]) {
+          case DOWNLOADING_STATUS:
+          case WAITING_STATUS:
+            element[TASK_STATUS] = PAUSED_STATUS;
+            break;
+        }
+        localStorage.setItem(element[TASK_ID], JSON.stringify(element))
+      });
+
+      ipcRenderer.send(READY_FOR_CLOSING, 0)
+
     });
   },
   methods: {

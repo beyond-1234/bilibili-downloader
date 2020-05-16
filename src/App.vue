@@ -5,13 +5,25 @@
         <li id="add-btn" v-bind:class="{'is-active':currentTab == 0}" v-on:click="currentTab = 0">
           <a>Home</a>
         </li>
-        <li id="downloading-btn" v-bind:class="{'is-active':currentTab == 1}" v-on:click="currentTab = 1">
+        <li
+          id="downloading-btn"
+          v-bind:class="{'is-active':currentTab == 1}"
+          v-on:click="currentTab = 1"
+        >
           <a>Downloading</a>
         </li>
-        <li id="finished-btn" v-bind:class="{'is-active':currentTab == 2}" v-on:click="currentTab = 2">
+        <li
+          id="finished-btn"
+          v-bind:class="{'is-active':currentTab == 2}"
+          v-on:click="currentTab = 2"
+        >
           <a>Finished</a>
         </li>
-        <li id="failed-btn" v-bind:class="{'is-active':currentTab == 3}" v-on:click="currentTab = 3">
+        <li
+          id="failed-btn"
+          v-bind:class="{'is-active':currentTab == 3}"
+          v-on:click="currentTab = 3"
+        >
           <a>Failed</a>
         </li>
       </ul>
@@ -20,11 +32,11 @@
     <div>
       <home v-bind:class="{ 'hide': currentTab != 0}"></home>
 
-      <downloadList v-bind:class="{ 'hide': currentTab != 1}" ></downloadList>
+      <downloadList v-bind:class="{ 'hide': currentTab != 1}"></downloadList>
 
-      <finishedList v-bind:class="{ 'hide': currentTab != 2}" ></finishedList>
-      
-      <failedList   v-bind:class="{ 'hide': currentTab != 3}" ></failedList>
+      <finishedList v-bind:class="{ 'hide': currentTab != 2}"></finishedList>
+
+      <failedList v-bind:class="{ 'hide': currentTab != 3}"></failedList>
 
       <!-- for merge windows, no html contents -->
       <merge></merge>
@@ -33,14 +45,14 @@
 </template>
 
 <script>
-import home from "./components/home/home.vue"
-import downloadList from "./components/list/downloadList.vue"
-import failedList from "./components/list/failedList.vue"
-import finishedList from "./components/list/finishedList.vue"
-import merge from "./components/task/merge.vue"
-import store from "./util/store"
-import { ipcRenderer } from 'electron'
-import { CHANGE_TAB, WINDOW_CLOSING } from './constants'
+import home from "./components/home/home.vue";
+import downloadList from "./components/list/downloadList.vue";
+import failedList from "./components/list/failedList.vue";
+import finishedList from "./components/list/finishedList.vue";
+import merge from "./components/task/merge.vue";
+import store from "./util/store";
+import { ipcRenderer } from "electron";
+import { CHANGE_TAB, WINDOW_CLOSING, PAUSE_TASK } from "./constants";
 // import detail from "./components/detail/detail.vue";
 
 export default {
@@ -52,40 +64,21 @@ export default {
     finishedList,
     merge
   },
-  mounted(){
+  mounted() {
     ipcRenderer.on(CHANGE_TAB, (event, args) => {
-      this.currentTab = args.cur
-    })
-    ipcRenderer.on(WINDOW_CLOSING, (event, args) => {
-      require("electron")
-        .remote.dialog.showMessageBoxSync({
-          message:"tasks ongoing, sure to quit?"
-        })
-        .then(result => {
-            console.log(result)
-          }
-        )
-        .catch(err => {
-          console.log(err);
-        });
-    })
+      this.currentTab = args.cur;
+    });
+    
   },
   data() {
     return {
-      currentTab:0,
+      currentTab: 0,
       rootPath: "",
       searchHistory: [],
-      downloadList:[],
-      finishedList:[],
-      failedList:[]
+      downloadList: [],
+      finishedList: [],
+      failedList: []
     };
-  },
-  beforeDestroy(){
-    console.log("before destroy")
-    setTimeout(() => {
-    ipcRenderer.send(WINDOW_CLOSING, false)
-      
-    }, 3000);
   }
 };
 </script>

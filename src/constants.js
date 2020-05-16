@@ -49,6 +49,8 @@ export const FOLDER = "folder"
 export const RESUME_TASK = "resumeTask"
 export const DELETE_TASK = "deleteTask"
 export const PAUSE_TASK = "pauseTask"
+export const PAUSE_TASK_FOR_CLOSING = "pauseTaskForClosing"
+export const READY_FOR_CLOSING = "readyForClosing"
 
 export const ADD_TO_DOWNLOAD_LIST = "addToDownloadList"
 export const START_TASK_WINDOW = "startTaskWindow"
@@ -67,3 +69,5 @@ export const FAILED_LIST = "failedList"
 export const CHANGE_TAB = "changeTab"
 
 export const WINDOW_CLOSING = "windowClosing"
+
+export const TIMEOUT = 6000

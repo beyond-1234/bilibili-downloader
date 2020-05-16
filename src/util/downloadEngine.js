@@ -20,7 +20,8 @@ import {
     OUTPUT,
     AUDIO_TOTAL,
     VIDEO_TOTAL,
-    FOLDER
+    FOLDER,
+    TIMEOUT
 } from '../constants'
 
 // used to cancel downloading
@@ -316,14 +317,16 @@ export function getTotalSize(url, avNumber, part) {
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKet/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
                 "Range": "0-1"
             },
+            // timeout: TIMEOUT,
             cancelToken: cancelSource.token
         }).then(async (response) => {
             var total_bytes = response.headers['content-length']
+            console.log(total_bytes)
             resolve(total_bytes)
         })
-            .catch((error) => {
-                reject(error)
-            })
+        .catch((error) => {
+            reject(error)
+        })
     })
 }
 
@@ -355,6 +358,7 @@ function doDownload(url, avNumber, part, path, received, callback) {
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKet/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
                 "Range": `${received}-`
             },
+            // timeout: TIMEOUT,
             cancelToken: cancelSource.token
         }).then(async (response) => {
             console.log("response")
@@ -364,6 +368,7 @@ function doDownload(url, avNumber, part, path, received, callback) {
 
             response.data.on('data', async (chunk) => {
                 received_bytes += chunk.length
+                console.log(received_bytes)
                 callback(received_bytes, total_bytes)
             })
             response.data.pipe(writer)

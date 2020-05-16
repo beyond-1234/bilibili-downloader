@@ -1,9 +1,11 @@
-import { get } from 'axios'
+var axios = require("axios")
 import { getEmptyVideoData } from './util'
-import { IS_OLD_VIDEO, HAS_ERROR, ERROR, 
-    TITLE, DESC, UP_NAME, VIDEO_PAGE, 
-    SELECT, VIDEO_PAGE_NAME, PAGE_COUNT, 
-    ACCEPTS, ACCEPT_CODE, ACCEPT_NAME, VIDEO_URL, AUDIO_URL, NUMBER, VIDEO_PAGES } from '../constants'
+import {
+    IS_OLD_VIDEO, HAS_ERROR, ERROR,
+    TITLE, DESC, UP_NAME, VIDEO_PAGE,
+    SELECT, VIDEO_PAGE_NAME, PAGE_COUNT,
+    ACCEPTS, ACCEPT_CODE, ACCEPT_NAME, VIDEO_URL, AUDIO_URL, NUMBER, VIDEO_PAGES, TIMEOUT
+} from '../constants'
 
 // var acceptDic = {
 //     "高清 1080P+": 112,
@@ -34,7 +36,11 @@ export async function getInfo(avNumber) {
 
     var referer = "https://www.bilibili.com/video/" + avNumber
 
-    await get(referer)
+    await axios({
+        method: "GET",
+        url: referer,
+        timeout: TIMEOUT
+    })
         .then(function (response) {
 
             videoData[NUMBER] = avNumber
@@ -170,28 +176,33 @@ export function getUrl(avNumber, acceptCode, part, partName, isOld) {
     var referer = "https://www.bilibili.com/video/" + avNumber
 
     return new Promise((resolve, reject) => {
-        get(referer + "?p=" + part).then((response) => {
-            var scripts = response["data"].match(/<script>.+?<\/script>/g)
-
-            var play_info_str = scripts[0].replace("<script>", "")
-                .replace("</script>", "")
-                .replace("window.__playinfo__=", "")
-                .replace(new RegExp("\u002F", "g"), "/")
-
-            var play_info = JSON.parse(play_info_str)
-
-            // get video url
-            if (isOld) {
-                getOldVideoUrl(acceptCode, play_info["data"]["durl"], url)
-            } else {
-                getNewVideoUrl(acceptCode, play_info["data"]["dash"]["video"], play_info["data"]["dash"]["audio"], url)
-            }
-
-            resolve(url)
-
-        }).catch((error) => {
-            reject(error)
+        axios({
+            method: "GET",
+            url: referer + "?p=" + part,
+            timeout: TIMEOUT
         })
+            .then((response) => {
+                var scripts = response["data"].match(/<script>.+?<\/script>/g)
+
+                var play_info_str = scripts[0].replace("<script>", "")
+                    .replace("</script>", "")
+                    .replace("window.__playinfo__=", "")
+                    .replace(new RegExp("\u002F", "g"), "/")
+
+                var play_info = JSON.parse(play_info_str)
+
+                // get video url
+                if (isOld) {
+                    getOldVideoUrl(acceptCode, play_info["data"]["durl"], url)
+                } else {
+                    getNewVideoUrl(acceptCode, play_info["data"]["dash"]["video"], play_info["data"]["dash"]["audio"], url)
+                }
+
+                resolve(url)
+
+            }).catch((error) => {
+                reject(error)
+            })
     })
 
 }

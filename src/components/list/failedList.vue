@@ -99,7 +99,9 @@ import {
   OUTPUT,
   DOWNLOAD_LIST,
   FINISHED_LIST,
-  FAILED_LIST
+  FAILED_LIST,
+  RESUME_TASK,
+  DELETE_TASK
 } from "../../constants";
 import store from "../../util/store";
 
